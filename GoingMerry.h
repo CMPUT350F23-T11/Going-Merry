@@ -4,16 +4,24 @@
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_args.h"
 #include "sc2lib/sc2_lib.h"
+#include <sc2api/sc2_unit_filters.h>
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
 
+using namespace sc2;
 
-class GoingMerry : public sc2::Agent {
+class GoingMerry : public Agent {
 public:
-	virtual void OnGameStart();
-	virtual void OnStep();
+	void OnGameStart();
+	void OnStep();
+	void OnUnitIdle(const Unit* unit);
 
 private:
+	size_t CountUnitType(UNIT_TYPEID unit_type);
+	bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV);
+	bool TryBuildSupplyDepot();
+	const Unit* FindNearestMineralPatch(const Point2D& start);
+	bool TryBuildBarracks();
 };
 
 #endif
