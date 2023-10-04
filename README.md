@@ -82,7 +82,7 @@ AI by specifying command line argurments.
 For example,
 
 ```
-/GoingMerry.exe -c -a zerg -d Hard -m CactusValleyLE.SC2Map
+./GoingMerry.exe -c -a zerg -d Hard -m CactusValleyLE.SC2Map
 ```
 
 will result in the bot playing against the zerg built-in AI on hard difficulty on the map CactusValleyLE.
