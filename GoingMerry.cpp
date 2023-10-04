@@ -1,5 +1,15 @@
 #include "GoingMerry.h"
+#include <iostream>
 
-void GoingMerry::OnGameStart() { return; }
+using namespace std;
 
-void GoingMerry::OnStep() { return; }
+void GoingMerry::OnGameStart()
+{
+	cout << "Hello, World!" << endl;
+}
+
+void GoingMerry::OnStep()
+{
+	cout << Observation()->GetGameLoop() << endl;
+}
+
