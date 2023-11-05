@@ -17,11 +17,19 @@ public:
 	void OnUnitIdle(const Unit* unit);
 
 private:
+
+	const ObservationInterface* observation;
+
 	size_t CountUnitType(UNIT_TYPEID unit_type);
-	bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV);
+	bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
+	bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type);
+	bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type);
 	bool TryBuildSupplyDepot();
 	const Unit* FindNearestMineralPatch(const Point2D& start);
-	bool TryBuildBarracks();
+	bool TryBuildForge();
+	bool TryBuildCyberneticscore();
+	bool TryBuildAssimilator();
+	const Unit* FindNearestVespenes(const Point2D& start);
 };
 
 #endif
