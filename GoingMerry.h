@@ -30,13 +30,14 @@ private:
 
 	const Unit* FindNearestMineralPatch(const Point2D& start);
 	const Unit* FindNearestVespenes(const Point2D& start);
-
+	
+	bool StillNeedingWorkers();
 	bool AlreadyBuilt(const Unit* ref, const Units units);
 	
 	bool TryBuildForge();
 	bool TryBuildCyberneticScore();
 	bool TryBuildAssimilator();
-	bool TryBuildSupplyDepot();
+	bool TryBuildPylon();
 	bool TryBuildDarkShrine();
 	bool TryBuildFleetBeacon();
 	bool TryBuildGateway();
@@ -49,6 +50,10 @@ private:
 	bool TryBuildShieldBattery();
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
+
+	void Mine(const Unit* unit,const Unit* nexus);
+	void GoingMerry::CollectVespeneGas(const Unit* unit, const Unit* assimilator);
+	void WorkerHub(const Unit* unit);
 
 };
 

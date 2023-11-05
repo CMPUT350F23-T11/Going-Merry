@@ -11,8 +11,8 @@ void GoingMerry::OnGameStart() {
 
 void GoingMerry::OnStep() 
 { 
-    //std::cout << Observation()->GetGameLoop() << std::endl;
-    TryBuildSupplyDepot();
+    std::cout << Observation()->GetGameLoop() << std::endl;
+    TryBuildPylon();
     TryBuildAssimilator();
     TryBuildForge();
     TryBuildCyberneticScore();
@@ -33,20 +33,23 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
     switch (unit->unit_type.ToType())
     {
         case UNIT_TYPEID::PROTOSS_NEXUS:
-        {
-            
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_PROBE);
+        {            
+            if (StillNeedingWorkers())
+            {
+                Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_PROBE);
+            }
             break;
         }
         case UNIT_TYPEID::PROTOSS_PROBE: {
-            const Unit* mineral_target = FindNearestMineralPatch(unit->pos);
-            if (!mineral_target) {
-                break;
-            }
-            Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
+
+            WorkerHub(unit);
             break;
         }
-
+        case UNIT_TYPEID::PROTOSS_GATEWAY:
+        {
+            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_ZEALOT);
+            break;
+        }
         default:
         {
             break;
@@ -57,6 +60,55 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
 size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
     return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
 }
+
+#pragma region worker command
+
+void GoingMerry::WorkerHub(const Unit* unit)
+{
+    const Units allNexus = observation->GetUnits(Unit::Alliance::Self,IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
+    const Units allAssimilator = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ASSIMILATOR));
+
+    for (const auto& assimilator : allAssimilator)
+    {
+        if (assimilator->assigned_harvesters < assimilator->ideal_harvesters)
+        {
+            CollectVespeneGas(unit, assimilator);
+            return;
+        }
+    }
+    for (const auto& nexus : allNexus)
+    {
+        if (nexus->assigned_harvesters < nexus->ideal_harvesters)
+        {
+            Mine(unit,nexus);
+            return;
+        }
+    }
+
+
+
+}
+
+void GoingMerry::Mine(const Unit* unit,const Unit* nexus)
+{
+    const Unit* mineral_target = FindNearestMineralPatch(nexus->pos);
+    if (!mineral_target) 
+    {
+        return;
+    }
+    Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
+}
+
+void GoingMerry::CollectVespeneGas(const Unit* unit, const Unit* assimilator)
+{
+    if (!assimilator)
+    {
+        return;
+    }
+    Actions()->UnitCommand(unit, ABILITY_ID::SMART, assimilator);
+}
+
+#pragma endregion
 
 #pragma region TryBuildStructures
 
@@ -229,6 +281,25 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, const 
 
 #pragma region Assistant Functions
 
+bool GoingMerry::StillNeedingWorkers()
+{
+    int res = 0;
+    auto probeNumbers = CountUnitType(UNIT_TYPEID::PROTOSS_PROBE);
+    const Units allNexus = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
+    const Units allAssimilator = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ASSIMILATOR));
+    for (const auto& nexus : allNexus)
+    {
+        res += nexus->ideal_harvesters;
+    }
+    for (const auto& assimilator : allAssimilator)
+    {
+        res += assimilator->ideal_harvesters;
+    }
+    if (probeNumbers < res)
+        return true;
+    return false;
+}
+
 bool GoingMerry::AlreadyBuilt(const Unit* ref, const Units units)
 {
     for (const auto& unit : units)
@@ -308,13 +379,11 @@ bool GoingMerry::TryBuildAssimilator()
     return TryBuildStructure(ABILITY_ID::BUILD_ASSIMILATOR, target);
 }
 
-bool GoingMerry::TryBuildSupplyDepot() {
-    //const ObservationInterface* observation = Observation();
-    // If we are not supply capped, don't build a supply depot.
+bool GoingMerry::TryBuildPylon() {
     if (observation->GetFoodUsed() <= observation->GetFoodCap() - 2)
         return false;
 
-    // Try and build a depot. Find a random SCV and give it the order.
+
     return TryBuildStructure(ABILITY_ID::BUILD_PYLON);
 }
 
