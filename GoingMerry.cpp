@@ -2,6 +2,7 @@
 #include <iostream>
 
 using namespace sc2;
+using namespace std;
 
 void GoingMerry::OnGameStart() { 
     observation = Observation();
@@ -10,9 +11,9 @@ void GoingMerry::OnGameStart() {
 
 void GoingMerry::OnStep() 
 { 
-    std::cout << Observation()->GetGameLoop() << std::endl;
+    //std::cout << Observation()->GetGameLoop() << std::endl;
     TryBuildSupplyDepot();
-    //TryBuildForge();
+    TryBuildForge();
     TryBuildAssimilator();
 }
 
@@ -23,6 +24,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
     {
         case UNIT_TYPEID::PROTOSS_NEXUS:
         {
+            
             Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_PROBE);
             break;
         }
@@ -34,15 +36,6 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
             Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
-       /* case UNIT_TYPEID::TERRAN_BARRACKS: {
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
-            break;
-        }
-        case UNIT_TYPEID::TERRAN_MARINE: {
-            const GameInfo& game_info = Observation()->GetGameInfo();
-            Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
-            break;
-        }*/
 
         default:
         {
@@ -56,7 +49,7 @@ size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
 }
 
 
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type) {
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
     //const ObservationInterface* observation = Observation();
 
     // If a unit already is building a supply structure of this type, do nothing.
@@ -85,7 +78,59 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_T
 
 }
 
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure,Point2D position, UNIT_TYPEID unit_type) {
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure,Point2D position, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
+    //const ObservationInterface* observation = Observation();
+
+    // If a unit already is building a supply structure of this type, do nothing.
+    // Also get an scv to build the structure.
+    const Unit* unit_to_build = nullptr;
+    Units units = observation->GetUnits(Unit::Alliance::Self);
+    for (const auto& unit : units) {
+        for (const auto& order : unit->orders) {
+            if (order.ability_id == ability_type_for_structure) {
+                return false;
+            }
+        }
+        if (unit->unit_type == unit_type) {
+            unit_to_build = unit;
+        }
+    }
+
+    Actions()->UnitCommand(unit_to_build,
+        ability_type_for_structure,
+        position);
+
+    return true;
+
+}
+
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
+    //const ObservationInterface* observation = Observation();
+
+    // If a unit already is building a supply structure of this type, do nothing.
+    // Also get an scv to build the structure.
+    const Unit* unit_to_build = nullptr;
+    Units units = observation->GetUnits(Unit::Alliance::Self);
+    for (const auto& unit : units) {
+        for (const auto& order : unit->orders) {
+            if (order.ability_id == ability_type_for_structure) {
+                return false;
+            }
+        }
+        if (unit->unit_type == unit_type) {
+            unit_to_build = unit;
+        }
+    }
+
+    Actions()->UnitCommand(unit_to_build,
+        ability_type_for_structure,
+        position);
+
+    return true;
+
+}
+
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, float radius, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
     //const ObservationInterface* observation = Observation();
 
     // If a unit already is building a supply structure of this type, do nothing.
@@ -114,7 +159,7 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure,Point2D
 
 }
 
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type) {
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, float radius, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
     //const ObservationInterface* observation = Observation();
 
     // If a unit already is building a supply structure of this type, do nothing.
@@ -138,6 +183,32 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3
     Actions()->UnitCommand(unit_to_build,
         ability_type_for_structure,
         position);
+
+    return true;
+
+}
+
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target,  UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
+    //const ObservationInterface* observation = Observation();
+
+    // If a unit already is building a supply structure of this type, do nothing.
+    // Also get an scv to build the structure.
+    const Unit* unit_to_build = nullptr;
+    Units units = observation->GetUnits(Unit::Alliance::Self);
+    for (const auto& unit : units) {
+        for (const auto& order : unit->orders) {
+            if (order.ability_id == ability_type_for_structure) {
+                return false;
+            }
+        }
+        if (unit->unit_type == unit_type) {
+            unit_to_build = unit;
+        }
+    }
+
+    Actions()->UnitCommand(unit_to_build,
+        ability_type_for_structure,
+        target);
 
     return true;
 
@@ -147,22 +218,37 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3
 
 const Unit* GoingMerry::FindNearestVespenes(const Point2D& start)
 {
-    Units units = observation->GetUnits(Unit::Alliance::Neutral);
-    float distance = std::numeric_limits<float>::max();
+    const Units allGas = observation->GetUnits(Unit::Alliance::Neutral, IsVisibleGeyser());
+    const Units built = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ASSIMILATOR));
     const Unit* target = nullptr;
-    for (const auto& unit : units)
+    float minDis = 0;
+
+    for (const auto& gas : allGas)
     {
-        if (unit->unit_type == UNIT_TYPEID::NEUTRAL_VESPENEGEYSER)
+        if (AlreadyBuilt(gas, built))
         {
-            float temp = DistanceSquared2D(unit->pos, start);
-            if (temp < distance)
-            {
-                distance = temp;
-                target = unit;
-            }
+            continue;
+        }
+        float temp = DistanceSquared2D(gas->pos, start);
+
+        if (temp < minDis || !target)
+        {
+            minDis = temp;
+            target = gas;
         }
     }
+    //cout << target->pos.x << " " << target->pos.y << endl;
     return target;
+}
+
+bool GoingMerry::AlreadyBuilt(const Unit* ref, const Units units)
+{
+    for (const auto& unit : units)
+    {
+        if (ref->pos == unit->pos)
+            return true;
+    }
+    return false;
 }
 
 bool GoingMerry::TryBuildAssimilator()
@@ -175,12 +261,12 @@ bool GoingMerry::TryBuildAssimilator()
         return false;
     }
 
-    return TryBuildStructure(ABILITY_ID::BUILD_ASSIMILATOR, target->pos, UNIT_TYPEID::PROTOSS_PROBE);
+    return TryBuildStructure(ABILITY_ID::BUILD_ASSIMILATOR, target);
 }
 
 bool GoingMerry::TryBuildCyberneticscore()
 {
-
+    return false;
 }
 
 bool GoingMerry::TryBuildSupplyDepot() {
@@ -190,7 +276,7 @@ bool GoingMerry::TryBuildSupplyDepot() {
         return false;
 
     // Try and build a depot. Find a random SCV and give it the order.
-    return TryBuildStructure(ABILITY_ID::BUILD_PYLON,UNIT_TYPEID::PROTOSS_PROBE);
+    return TryBuildStructure(ABILITY_ID::BUILD_PYLON);
 }
 
 const Unit* GoingMerry::FindNearestMineralPatch(const Point2D& start) {
@@ -211,12 +297,12 @@ const Unit* GoingMerry::FindNearestMineralPatch(const Point2D& start) {
 
 bool GoingMerry::TryBuildForge() {
     //const ObservationInterface* observation = Observation();
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) < 1) {
-        return false;
-    }
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) > 0) {
+    //if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) < 1) {
+    //    return false;
+    //}
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) > CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS)) {
         return false;
     }
 
-    return TryBuildStructure(ABILITY_ID::BUILD_FORGE,UNIT_TYPEID::PROTOSS_PROBE);
+    return TryBuildStructure(ABILITY_ID::BUILD_FORGE);
 }
