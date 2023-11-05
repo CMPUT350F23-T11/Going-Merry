@@ -13,8 +13,18 @@ void GoingMerry::OnStep()
 { 
     //std::cout << Observation()->GetGameLoop() << std::endl;
     TryBuildSupplyDepot();
-    TryBuildForge();
     TryBuildAssimilator();
+    TryBuildForge();
+    TryBuildCyberneticScore();
+    TryBuildGateway();
+    TryBuildTwilightCouncil();
+    TryBuildStargate();
+    TryBuildRoboticsFacility();
+    TryBuildFleetBeacon();
+    TryBuildDarkShrine();
+    TryBuildTemplarArchives();
+    TryBuildRoboticsBay();
+    
 }
 
 
@@ -48,6 +58,7 @@ size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
     return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
 }
 
+#pragma region TryBuildStructures
 
 bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
     //const ObservationInterface* observation = Observation();
@@ -78,7 +89,7 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_T
 
 }
 
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure,Point2D position, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
     //const ObservationInterface* observation = Observation();
 
     // If a unit already is building a supply structure of this type, do nothing.
@@ -188,7 +199,7 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3
 
 }
 
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target,  UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
     //const ObservationInterface* observation = Observation();
 
     // If a unit already is building a supply structure of this type, do nothing.
@@ -214,7 +225,19 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, const 
 
 }
 
+#pragma endregion
 
+#pragma region Assistant Functions
+
+bool GoingMerry::AlreadyBuilt(const Unit* ref, const Units units)
+{
+    for (const auto& unit : units)
+    {
+        if (ref->pos == unit->pos)
+            return true;
+    }
+    return false;
+}
 
 const Unit* GoingMerry::FindNearestVespenes(const Point2D& start)
 {
@@ -241,44 +264,6 @@ const Unit* GoingMerry::FindNearestVespenes(const Point2D& start)
     return target;
 }
 
-bool GoingMerry::AlreadyBuilt(const Unit* ref, const Units units)
-{
-    for (const auto& unit : units)
-    {
-        if (ref->pos == unit->pos)
-            return true;
-    }
-    return false;
-}
-
-bool GoingMerry::TryBuildAssimilator()
-{
-    const Unit* target = nullptr;
-
-    target = FindNearestVespenes(observation->GetStartLocation());
-    if (!target)
-    {
-        return false;
-    }
-
-    return TryBuildStructure(ABILITY_ID::BUILD_ASSIMILATOR, target);
-}
-
-bool GoingMerry::TryBuildCyberneticscore()
-{
-    return false;
-}
-
-bool GoingMerry::TryBuildSupplyDepot() {
-    //const ObservationInterface* observation = Observation();
-    // If we are not supply capped, don't build a supply depot.
-    if (observation->GetFoodUsed() <= observation->GetFoodCap() - 2)
-        return false;
-
-    // Try and build a depot. Find a random SCV and give it the order.
-    return TryBuildStructure(ABILITY_ID::BUILD_PYLON);
-}
-
 const Unit* GoingMerry::FindNearestMineralPatch(const Point2D& start) {
     Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
     float distance = std::numeric_limits<float>::max();
@@ -295,14 +280,184 @@ const Unit* GoingMerry::FindNearestMineralPatch(const Point2D& start) {
     return target;
 }
 
+#pragma endregion
+
+#pragma region Try Build Basic Structures
+
 bool GoingMerry::TryBuildForge() {
     //const ObservationInterface* observation = Observation();
-    //if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) < 1) {
-    //    return false;
-    //}
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) <= 0)
+        return false;
     if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) > CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS)) {
         return false;
     }
 
     return TryBuildStructure(ABILITY_ID::BUILD_FORGE);
 }
+
+bool GoingMerry::TryBuildAssimilator()
+{
+    const Unit* target = nullptr;
+
+    target = FindNearestVespenes(observation->GetStartLocation());
+    if (!target)
+    {
+        return false;
+    }
+
+    return TryBuildStructure(ABILITY_ID::BUILD_ASSIMILATOR, target);
+}
+
+bool GoingMerry::TryBuildSupplyDepot() {
+    //const ObservationInterface* observation = Observation();
+    // If we are not supply capped, don't build a supply depot.
+    if (observation->GetFoodUsed() <= observation->GetFoodCap() - 2)
+        return false;
+
+    // Try and build a depot. Find a random SCV and give it the order.
+    return TryBuildStructure(ABILITY_ID::BUILD_PYLON);
+}
+
+bool GoingMerry::TryBuildCyberneticScore()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) < 1)
+    {
+        return false;
+    }    
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_CYBERNETICSCORE);
+}
+
+bool GoingMerry::TryBuildDarkShrine()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL) < 1)
+    {
+        return false;
+    }
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_DARKSHRINE) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_DARKSHRINE);
+}
+
+bool GoingMerry::TryBuildFleetBeacon()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE) < 1)
+    {
+        return false;
+    }
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_FLEETBEACON) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_FLEETBEACON);
+}
+
+bool GoingMerry::TryBuildGateway()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_GATEWAY);
+}
+
+bool GoingMerry::TryBuildRoboticsFacility()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) < 1)
+    {
+        return false;
+    }
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_ROBOTICSFACILITY);
+}
+
+bool GoingMerry::TryBuildRoboticsBay()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) < 1)
+    {
+        return false;
+    }
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_ROBOTICSBAY);
+}
+
+bool GoingMerry::TryBuildStargate()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) < 1)
+    {
+        return false;
+    }
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_STARGATE);
+}
+
+bool GoingMerry::TryBuildTemplarArchives()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL) < 1)
+    {
+        return false;
+    }
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_TEMPLARARCHIVE) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_TEMPLARARCHIVE);
+}
+
+bool GoingMerry::TryBuildTwilightCouncil()
+{
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) < 1)
+    {
+        return false;
+    }
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL) > 0)
+    {
+        return false;
+    }
+    return TryBuildStructure(ABILITY_ID::BUILD_TWILIGHTCOUNCIL);
+}
+
+#pragma endregion
+
+#pragma region Try Update Tech/Structures
+
+bool GoingMerry::TryBuildWarpGate()
+{
+    return false;
+}
+
+#pragma endregion
+
+#pragma region Try Build Defense Structure
+
+bool GoingMerry::TryBuildPhotonCannon()
+{
+    return false;
+}
+
+bool GoingMerry::TryBuildShieldBattery()
+{
+    return false;
+}
+
+bool GoingMerry::TryBuildStasisWard()
+{
+    return false;
+}
+
+#pragma endregion
+

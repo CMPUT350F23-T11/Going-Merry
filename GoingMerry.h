@@ -27,13 +27,29 @@ private:
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
-	bool TryBuildSupplyDepot();
+
 	const Unit* FindNearestMineralPatch(const Point2D& start);
-	bool TryBuildForge();
-	bool TryBuildCyberneticscore();
-	bool TryBuildAssimilator();
 	const Unit* FindNearestVespenes(const Point2D& start);
+
 	bool AlreadyBuilt(const Unit* ref, const Units units);
+	
+	bool TryBuildForge();
+	bool TryBuildCyberneticScore();
+	bool TryBuildAssimilator();
+	bool TryBuildSupplyDepot();
+	bool TryBuildDarkShrine();
+	bool TryBuildFleetBeacon();
+	bool TryBuildGateway();
+	bool TryBuildPhotonCannon();
+	bool TryBuildRoboticsFacility();
+	bool TryBuildStargate();
+	bool TryBuildTemplarArchives();
+	bool TryBuildTwilightCouncil();
+	bool TryBuildWarpGate();
+	bool TryBuildShieldBattery();
+	bool TryBuildStasisWard();
+	bool TryBuildRoboticsBay();
+
 };
 
 #endif
