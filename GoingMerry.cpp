@@ -9,7 +9,6 @@ void GoingMerry::OnGameStart() { return; }
 void GoingMerry::OnStep() 
 { 
     std::cout << Observation()->GetGameLoop() << std::endl;
-    // ScoutingLogic();
     TryBuildSupplyDepot();
     TryBuildBarracks();
 }
@@ -25,12 +24,20 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
         break;
     }
     case UNIT_TYPEID::TERRAN_SCV: {
-        const Unit* mineral_target = FindNearestMineralPatch(unit->pos);
-        if (!mineral_target) {
+        if (Observation()->GetUnits(Unit::Alliance::Self, sc2::IsUnit(UNIT_TYPEID::TERRAN_SCV)).size() < 2)
+        {
+            const Unit* mineral_target = FindNearestMineralPatch(unit->pos);
+            if (!mineral_target) {
+                break;
+            }
+            Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
             break;
         }
-        Actions()->UnitCommand(unit, ABILITY_ID::SMART, mineral_target);
-        break;
+        else
+        {
+            SendScouting(unit);
+        }
+        
     }
     case UNIT_TYPEID::TERRAN_BARRACKS: {
         Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_MARINE);
@@ -121,12 +128,44 @@ bool GoingMerry::TryBuildBarracks() {
     return TryBuildStructure(ABILITY_ID::BUILD_BARRACKS);
 }
 
-void GoingMerry::ScoutingLogic() {
-        const sc2::Units& enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
-        for (auto it : enemy_units)
+void GoingMerry::SendScouting(const Unit *unit) {
+    
+    // goes to a random location on the map to increase observable area
+    Point2D target_location = GetRandomMapLocation();
+    Actions()->UnitCommand(unit, ABILITY_ID::SMART, target_location);
+
+    const sc2::Units& cur_enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
+    bool found = false;
+    for (auto cur : cur_enemy_units)
+    {
+        found = false;
+        for (auto enemies : enemy_units)
         {
-            cout << it->unit_type << endl;
+            if (enemies.first == cur)
+            {
+                enemies.second += 1;
+                found = true;
+            }
         }
-        // Update your data structures with scouting information
-        
+        if (!found)
+        {
+            enemy_units.push_back(make_pair(cur,1));
+        }
     }
+}
+
+sc2::Point2D GoingMerry::GetRandomMapLocation() {
+    const sc2::GameInfo& game_info = Observation()->GetGameInfo();
+    
+    // Define boundaries for the random location
+    float minX = game_info.playable_min.x;
+    float minY = game_info.playable_min.y;
+    float maxX = game_info.playable_max.x;
+    float maxY = game_info.playable_max.y;
+
+    // Generate random coordinates within the boundaries
+    float randomX = sc2::GetRandomScalar() * (maxX - minX) + minX;
+    float randomY = sc2::GetRandomScalar() * (maxY - minY) + minY;
+
+    return sc2::Point2D(randomX, randomY);
+}
