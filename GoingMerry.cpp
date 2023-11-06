@@ -14,12 +14,13 @@ void GoingMerry::OnStep()
     if (enemy_units.size() > 0)
     {
         std::cout << "Found enemies" << std::endl;
-        for (auto it : enemy_units)
-        {
-            cout << "Unit type: " << it.first->unit_type << endl;
-            cout << "Unit count: " << it.second << endl;
+        cout << enemy_units.size() << endl;
+        //for (auto it : enemy_units)
+        //{
+        //    cout << "Unit type: " << it->unit_type << endl;
+        //    cout << "Unit count: " << it->pos.x << it->pos.y << it->pos.z << endl;
 
-        }
+        //}
     }
 }
 
@@ -34,7 +35,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
         break;
     }
     case UNIT_TYPEID::TERRAN_SCV: {
-        if (Observation()->GetUnits(Unit::Alliance::Self, sc2::IsUnit(UNIT_TYPEID::TERRAN_SCV)).size() < 2)
+        if (Observation()->GetUnits(Unit::Alliance::Self, sc2::IsUnit(UNIT_TYPEID::TERRAN_SCV)).size() < 16)
         {
             const Unit* mineral_target = FindNearestMineralPatch(unit->pos);
             if (!mineral_target) {
@@ -148,20 +149,19 @@ void GoingMerry::SendScouting(const Unit *unit) {
     bool found = false;
     for (auto cur : cur_enemy_units)
     {
-        found = false;
-        for (auto enemies : enemy_units)
+        for (auto seen : enemy_units)
         {
-            if (enemies.first == cur)
+            if (seen == cur)
             {
-                enemies.second += 1;
                 found = true;
             }
         }
         if (!found)
         {
-            enemy_units.push_back(make_pair(cur,1));
+            enemy_units.push_back(cur);
         }
     }
+   
 }
 
 sc2::Point2D GoingMerry::GetRandomMapLocation() {
