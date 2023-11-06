@@ -17,7 +17,9 @@ public:
 	void OnUnitIdle(const Unit* unit);
 
 private:
+	int num_scout = 0;
 	std::vector<const Unit*> enemy_units;
+	std::vector<const Unit*> enemy_bases;
 	size_t CountUnitType(UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV);
 	bool TryBuildSupplyDepot();

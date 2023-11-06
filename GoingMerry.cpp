@@ -15,12 +15,7 @@ void GoingMerry::OnStep()
     {
         std::cout << "Found enemies" << std::endl;
         cout << enemy_units.size() << endl;
-        //for (auto it : enemy_units)
-        //{
-        //    cout << "Unit type: " << it->unit_type << endl;
-        //    cout << "Unit count: " << it->pos.x << it->pos.y << it->pos.z << endl;
-
-        //}
+        cout << enemy_bases.size() << endl;
     }
 }
 
@@ -35,7 +30,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
         break;
     }
     case UNIT_TYPEID::TERRAN_SCV: {
-        if (Observation()->GetUnits(Unit::Alliance::Self, sc2::IsUnit(UNIT_TYPEID::TERRAN_SCV)).size() < 16)
+        if (Observation()->GetUnits(Unit::Alliance::Self, sc2::IsUnit(UNIT_TYPEID::TERRAN_SCV)).size() < 16 && num_scout > 2)
         {
             const Unit* mineral_target = FindNearestMineralPatch(unit->pos);
             if (!mineral_target) {
@@ -46,6 +41,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
         }
         else
         {
+            num_scout += 1;
             SendScouting(unit);
         }
         
@@ -149,17 +145,38 @@ void GoingMerry::SendScouting(const Unit *unit) {
     bool found = false;
     for (auto cur : cur_enemy_units)
     {
-        for (auto seen : enemy_units)
+        found = false;
+        if (cur->unit_type == sc2::UNIT_TYPEID::TERRAN_COMMANDCENTER ||
+            cur->unit_type == sc2::UNIT_TYPEID::PROTOSS_NEXUS ||
+            cur->unit_type == sc2::UNIT_TYPEID::ZERG_HATCHERY)
         {
-            if (seen == cur)
+            for (auto seen : enemy_bases)
             {
-                found = true;
+                if (seen == cur)
+                {
+                    found = true;
+                }
+            }
+            if (!found)
+            {
+                enemy_bases.push_back(cur);
             }
         }
-        if (!found)
+        else
         {
-            enemy_units.push_back(cur);
+            for (auto seen : enemy_units)
+            {
+                if (seen == cur)
+                {
+                    found = true;
+                }
+            }
+            if (!found)
+            {
+                enemy_units.push_back(cur);
+            }
         }
+        
     }
    
 }
@@ -179,5 +196,3 @@ sc2::Point2D GoingMerry::GetRandomMapLocation() {
 
     return sc2::Point2D(randomX, randomY);
 }
-
-// TERRAN_COMMANDCENTER, PROTOSS_NEXUS, ZERG_HATCHERY
