@@ -17,16 +17,18 @@ public:
 	void OnUnitIdle(const Unit* unit);
 
 private:
-	int num_scout = 0;
 	std::vector<const Unit*> enemy_units;
 	std::vector<const Unit*> enemy_bases;
+	std::vector<const Unit*> scouts;
+	void CheckScouts();
+	void SendScouting(const Unit* unit);
+	Point2D GetRandomMapLocation();
 	size_t CountUnitType(UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV);
 	bool TryBuildSupplyDepot();
 	const Unit* FindNearestMineralPatch(const Point2D& start);
 	bool TryBuildBarracks();
-	void SendScouting(const Unit *unit);
-	Point2D GetRandomMapLocation();
+	
 };
 
 #endif

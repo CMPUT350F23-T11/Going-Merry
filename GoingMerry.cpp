@@ -6,17 +6,14 @@ using namespace std;
 
 void GoingMerry::OnGameStart() { return; }
 
-void GoingMerry::OnStep() 
-{ 
+void GoingMerry::OnStep()
+{
     // std::cout << Observation()->GetGameLoop() << std::endl;
     TryBuildSupplyDepot();
     TryBuildBarracks();
-    if (enemy_units.size() > 0)
-    {
-        std::cout << "Found enemies" << std::endl;
-        cout << enemy_units.size() << endl;
-        cout << enemy_bases.size() << endl;
-    }
+    CheckScouts();
+   
+
 }
 
 
@@ -30,7 +27,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
         break;
     }
     case UNIT_TYPEID::TERRAN_SCV: {
-        if (Observation()->GetUnits(Unit::Alliance::Self, sc2::IsUnit(UNIT_TYPEID::TERRAN_SCV)).size() < 16 && num_scout > 2)
+        if (Observation()->GetUnits(Unit::Alliance::Self, sc2::IsUnit(UNIT_TYPEID::TERRAN_SCV)).size() < 16 || scouts.size() > 2)
         {
             const Unit* mineral_target = FindNearestMineralPatch(unit->pos);
             if (!mineral_target) {
@@ -41,7 +38,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
         }
         else
         {
-            num_scout += 1;
+            scouts.push_back(unit);
             SendScouting(unit);
         }
         
@@ -139,6 +136,7 @@ void GoingMerry::SendScouting(const Unit *unit) {
     
     // goes to a random location on the map to increase observable area
     Point2D target_location = GetRandomMapLocation();
+    cout << "Target location: " << target_location.x << ", " << target_location.y << endl;
     Actions()->UnitCommand(unit, ABILITY_ID::SMART, target_location);
 
     const sc2::Units& cur_enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
@@ -159,6 +157,7 @@ void GoingMerry::SendScouting(const Unit *unit) {
             }
             if (!found)
             {
+                cout << "Found base - new count: " << enemy_bases.size() + 1 << endl;
                 enemy_bases.push_back(cur);
             }
         }
@@ -173,12 +172,12 @@ void GoingMerry::SendScouting(const Unit *unit) {
             }
             if (!found)
             {
+                cout << "Found enemy - new count: " << enemy_units.size() + 1 << endl;;
                 enemy_units.push_back(cur);
             }
         }
         
     }
-   
 }
 
 sc2::Point2D GoingMerry::GetRandomMapLocation() {
@@ -191,8 +190,29 @@ sc2::Point2D GoingMerry::GetRandomMapLocation() {
     float maxY = game_info.playable_max.y;
 
     // Generate random coordinates within the boundaries
-    float randomX = sc2::GetRandomScalar() * (maxX - minX) + minX;
-    float randomY = sc2::GetRandomScalar() * (maxY - minY) + minY;
+    float randomX = sc2::GetRandomInteger(minX, maxX - 1) + sc2::GetRandomFraction();
+    float randomY = sc2::GetRandomInteger(minY, maxY - 1) + sc2::GetRandomFraction();
 
     return sc2::Point2D(randomX, randomY);
+}
+
+void GoingMerry::CheckScouts() {
+    if (scouts.size() == 0)
+    {
+        return;
+    }
+
+    auto it = scouts.begin();
+    while (it != scouts.end())
+    {
+        if ((*it)->is_alive)
+        {
+            SendScouting(*it);
+            ++it;
+        }
+        else
+        {
+            it = scouts.erase(it);
+        }
+    }
 }
