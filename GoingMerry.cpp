@@ -179,3 +179,5 @@ sc2::Point2D GoingMerry::GetRandomMapLocation() {
 
     return sc2::Point2D(randomX, randomY);
 }
+
+// TERRAN_COMMANDCENTER, PROTOSS_NEXUS, ZERG_HATCHERY
