@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     return 0;
 =======
 int main(int argc, char* argv[]) {
-	RunBot(argc, argv, new GoingMerry(), sc2::Race::Terran);
+	RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
 	return 0;
 >>>>>>> Stashed changes
 }
