@@ -12,9 +12,15 @@ using namespace std;
 
 // LadderInterface allows the bot to be tested against the built-in AI or
 // played against other bots
+<<<<<<< Updated upstream
 int main(int argc, char* argv[]) 
 {
     RunBot(argc, argv, new GoingMerry(), Race::Terran);
 
     return 0;
+=======
+int main(int argc, char* argv[]) {
+	RunBot(argc, argv, new GoingMerry(), sc2::Race::Terran);
+	return 0;
+>>>>>>> Stashed changes
 }
