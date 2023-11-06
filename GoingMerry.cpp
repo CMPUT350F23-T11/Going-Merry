@@ -8,9 +8,19 @@ void GoingMerry::OnGameStart() { return; }
 
 void GoingMerry::OnStep() 
 { 
-    std::cout << Observation()->GetGameLoop() << std::endl;
+    // std::cout << Observation()->GetGameLoop() << std::endl;
     TryBuildSupplyDepot();
     TryBuildBarracks();
+    if (enemy_units.size() > 0)
+    {
+        std::cout << "Found enemies" << std::endl;
+        for (auto it : enemy_units)
+        {
+            cout << "Unit type: " << it.first->unit_type << endl;
+            cout << "Unit count: " << it.second << endl;
+
+        }
+    }
 }
 
 
