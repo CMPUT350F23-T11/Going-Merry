@@ -9,6 +9,7 @@ void GoingMerry::OnGameStart() { return; }
 void GoingMerry::OnStep() 
 { 
     std::cout << Observation()->GetGameLoop() << std::endl;
+    // ScoutingLogic();
     TryBuildSupplyDepot();
     TryBuildBarracks();
 }
@@ -119,3 +120,13 @@ bool GoingMerry::TryBuildBarracks() {
 
     return TryBuildStructure(ABILITY_ID::BUILD_BARRACKS);
 }
+
+void GoingMerry::ScoutingLogic() {
+        const sc2::Units& enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
+        for (auto it : enemy_units)
+        {
+            cout << it->unit_type << endl;
+        }
+        // Update your data structures with scouting information
+        
+    }
