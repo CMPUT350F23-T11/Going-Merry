@@ -24,7 +24,6 @@ void GoingMerry::OnStep()
     TryBuildDarkShrine();
     TryBuildTemplarArchives();
     TryBuildRoboticsBay();
-    
 }
 
 
@@ -55,10 +54,6 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
             break;
         }
     }
-}
-
-size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
-    return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
 }
 
 #pragma region worker command
@@ -193,7 +188,7 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3
 
 }
 
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, float radius, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
     //const ObservationInterface* observation = Observation();
 
     // If a unit already is building a supply structure of this type, do nothing.
@@ -222,7 +217,7 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2
 
 }
 
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, float radius, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
+bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
     //const ObservationInterface* observation = Observation();
 
     // If a unit already is building a supply structure of this type, do nothing.
@@ -280,6 +275,10 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, const 
 #pragma endregion
 
 #pragma region Assistant Functions
+
+size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
+    return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
+}
 
 bool GoingMerry::StillNeedingWorkers()
 {
@@ -357,9 +356,9 @@ const Unit* GoingMerry::FindNearestMineralPatch(const Point2D& start) {
 
 bool GoingMerry::TryBuildForge() {
     //const ObservationInterface* observation = Observation();
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) <= 0)
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) < 1)
         return false;
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) > CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS)) {
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) > 0) {
         return false;
     }
 
@@ -498,6 +497,11 @@ bool GoingMerry::TryBuildTwilightCouncil()
         return false;
     }
     return TryBuildStructure(ABILITY_ID::BUILD_TWILIGHTCOUNCIL);
+}
+
+bool GoingMerry::TryExpendBase()
+{
+
 }
 
 #pragma endregion

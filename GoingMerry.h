@@ -24,8 +24,8 @@ private:
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type);
-	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, float radius, UNIT_TYPEID unit_type);
-	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, float radius, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
 
 	const Unit* FindNearestMineralPatch(const Point2D& start);
@@ -50,6 +50,7 @@ private:
 	bool TryBuildShieldBattery();
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
+	bool TryExpendBase();
 
 	void Mine(const Unit* unit,const Unit* nexus);
 	void GoingMerry::CollectVespeneGas(const Unit* unit, const Unit* assimilator);
