@@ -11,11 +11,11 @@ void GoingMerry::OnGameStart() {
 
 void GoingMerry::OnStep() 
 { 
-    std::cout << Observation()->GetGameLoop() << std::endl;
+    // std::cout << Observation()->GetGameLoop() << std::endl;
     TryBuildPylon();
     TryBuildAssimilator();
     TryBuildForge();
-    TryBuildCyberneticScore();
+    TryBuildCyberneticsCore();
     TryBuildGateway();
     TryBuildTwilightCouncil();
     TryBuildStargate();
@@ -24,6 +24,7 @@ void GoingMerry::OnStep()
     TryBuildDarkShrine();
     TryBuildTemplarArchives();
     TryBuildRoboticsBay();
+    TrySendScouts();
 }
 
 
@@ -46,7 +47,14 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
         }
         case UNIT_TYPEID::PROTOSS_GATEWAY:
         {
-            Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_ZEALOT);
+            if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) > 0)
+            {
+                Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_ADEPT);
+            }
+            else
+            {
+                Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_ZEALOT);
+            }
             break;
         }
         default:
@@ -211,36 +219,7 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2
 
     Actions()->UnitCommand(unit_to_build,
         ability_type_for_structure,
-        position);
-
-    return true;
-
-}
-
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
-    //const ObservationInterface* observation = Observation();
-
-    // If a unit already is building a supply structure of this type, do nothing.
-    // Also get an scv to build the structure.
-    const Unit* unit_to_build = nullptr;
-    Units units = observation->GetUnits(Unit::Alliance::Self);
-    for (const auto& unit : units) {
-        for (const auto& order : unit->orders) {
-            if (order.ability_id == ability_type_for_structure) {
-                return false;
-            }
-        }
-        if (unit->unit_type == unit_type) {
-            unit_to_build = unit;
-        }
-    }
-
-    float rx = GetRandomScalar();
-    float ry = GetRandomScalar();
-
-    Actions()->UnitCommand(unit_to_build,
-        ability_type_for_structure,
-        position);
+        pylon);
 
     return true;
 
@@ -386,7 +365,7 @@ bool GoingMerry::TryBuildPylon() {
     return TryBuildStructure(ABILITY_ID::BUILD_PYLON);
 }
 
-bool GoingMerry::TryBuildCyberneticScore()
+bool GoingMerry::TryBuildCyberneticsCore()
 {
     if (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) < 1)
     {
@@ -499,9 +478,9 @@ bool GoingMerry::TryBuildTwilightCouncil()
     return TryBuildStructure(ABILITY_ID::BUILD_TWILIGHTCOUNCIL);
 }
 
-bool GoingMerry::TryExpendBase()
+bool GoingMerry::TryExpandBase()
 {
-
+    return false;
 }
 
 #pragma endregion
@@ -534,3 +513,100 @@ bool GoingMerry::TryBuildStasisWard()
 
 #pragma endregion
 
+
+sc2::Point2D GoingMerry::GetRandomMapLocation() 
+    {
+        const sc2::GameInfo& game_info = Observation()->GetGameInfo();
+        
+        // Define boundaries for the random location
+        float minX = game_info.playable_min.x;
+        float minY = game_info.playable_min.y;
+        float maxX = game_info.playable_max.x;
+        float maxY = game_info.playable_max.y;
+
+        // Generate random coordinates within the boundaries
+        float randomX = sc2::GetRandomInteger(minX, maxX - 1) + sc2::GetRandomFraction();
+        float randomY = sc2::GetRandomInteger(minY, maxY - 1) + sc2::GetRandomFraction();
+
+        return sc2::Point2D(randomX, randomY);
+    }
+
+void GoingMerry::SendScouting()
+{
+    Point2D target_location = GetRandomMapLocation();
+    float dist = Distance2D(scouts[0]->pos, target_location);
+    while (dist < 50)
+    {
+        target_location = GetRandomMapLocation();
+        dist = Distance2D(scouts[0]->pos, target_location);
+    }
+
+    if (scouts[0]->orders.empty()) {
+        Actions()->UnitCommand(scouts[0], ABILITY_ID::GENERAL_MOVE, target_location);
+        Actions()->UnitCommand(scouts[1], ABILITY_ID::GENERAL_MOVE, target_location);
+    }
+    else if (!scouts[0]->orders.empty()) {
+        if (scouts[0]->orders.front().ability_id != ABILITY_ID::GENERAL_MOVE) {
+            Actions()->UnitCommand(scouts[0], ABILITY_ID::GENERAL_MOVE, target_location);
+            Actions()->UnitCommand(scouts[1], ABILITY_ID::GENERAL_MOVE, target_location);
+        }
+    }
+    const sc2::Units& cur_enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
+    bool found = false;
+    for (auto cur : cur_enemy_units)
+    {
+        found = false;
+        if (cur->unit_type == sc2::UNIT_TYPEID::TERRAN_COMMANDCENTER ||
+            cur->unit_type == sc2::UNIT_TYPEID::PROTOSS_NEXUS ||
+            cur->unit_type == sc2::UNIT_TYPEID::ZERG_HATCHERY)
+        {
+            for (auto seen : enemy_bases)
+            {
+                if (seen == cur)
+                {
+                    found = true;
+                }
+            }
+            if (!found)
+            {
+                cout << "Found base - new count: " << enemy_bases.size() + 1 << endl;
+                enemy_bases.push_back(cur);
+            }
+        }
+        else
+        {
+            for (auto seen : enemy_units)
+            {
+                if (seen == cur)
+                {
+                    found = true;
+                }
+            }
+            if (!found)
+            {
+                cout << "Found enemy - new count: " << enemy_units.size() + 1 << endl;;
+                enemy_units.push_back(cur);
+            }
+        }
+    }
+}
+
+void GoingMerry::TrySendScouts()
+{
+    if (scouts.size() != 2)
+    {
+        if (CountUnitType(UNIT_TYPEID::PROTOSS_ADEPT) > 2)
+        {
+            const sc2::Units& adepts = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ADEPT));
+            scouts.push_back(adepts[0]);
+            scouts.push_back(adepts[1]);
+            SendScouting();
+        }
+        return;
+    }
+    if (scouts.size() == 2)
+    {
+        SendScouting();
+        return;
+    }   
+}

@@ -35,7 +35,7 @@ private:
 	bool AlreadyBuilt(const Unit* ref, const Units units);
 	
 	bool TryBuildForge();
-	bool TryBuildCyberneticScore();
+	bool TryBuildCyberneticsCore();
 	bool TryBuildAssimilator();
 	bool TryBuildPylon();
 	bool TryBuildDarkShrine();
@@ -50,11 +50,18 @@ private:
 	bool TryBuildShieldBattery();
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
-	bool TryExpendBase();
+	bool TryExpandBase();
 
 	void Mine(const Unit* unit,const Unit* nexus);
-	void GoingMerry::CollectVespeneGas(const Unit* unit, const Unit* assimilator);
+	void CollectVespeneGas(const Unit* unit, const Unit* assimilator);
 	void WorkerHub(const Unit* unit);
+
+	std::vector<const Unit *> enemy_units;
+	std::vector<const Unit *> enemy_bases;
+	std::vector<const Unit *> scouts;
+	void TrySendScouts();
+	void SendScouting();
+	sc2::Point2D GetRandomMapLocation();
 
 };
 
