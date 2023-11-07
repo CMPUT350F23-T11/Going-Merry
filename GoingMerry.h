@@ -17,11 +17,45 @@ public:
 	void OnUnitIdle(const Unit* unit);
 
 private:
+
+	const ObservationInterface* observation;
+
 	size_t CountUnitType(UNIT_TYPEID unit_type);
-	bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::TERRAN_SCV);
-	bool TryBuildSupplyDepot();
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
+
 	const Unit* FindNearestMineralPatch(const Point2D& start);
-	bool TryBuildBarracks();
+	const Unit* FindNearestVespenes(const Point2D& start);
+	
+	bool StillNeedingWorkers();
+	bool AlreadyBuilt(const Unit* ref, const Units units);
+	
+	bool TryBuildForge();
+	bool TryBuildCyberneticScore();
+	bool TryBuildAssimilator();
+	bool TryBuildPylon();
+	bool TryBuildDarkShrine();
+	bool TryBuildFleetBeacon();
+	bool TryBuildGateway();
+	bool TryBuildPhotonCannon();
+	bool TryBuildRoboticsFacility();
+	bool TryBuildStargate();
+	bool TryBuildTemplarArchives();
+	bool TryBuildTwilightCouncil();
+	bool TryBuildWarpGate();
+	bool TryBuildShieldBattery();
+	bool TryBuildStasisWard();
+	bool TryBuildRoboticsBay();
+	bool TryExpendBase();
+
+	void Mine(const Unit* unit,const Unit* nexus);
+	void GoingMerry::CollectVespeneGas(const Unit* unit, const Unit* assimilator);
+	void WorkerHub(const Unit* unit);
+
 };
 
 #endif
