@@ -17,9 +17,10 @@ public:
 	void OnUnitIdle(const Unit* unit);
 
 private:
-
+    // Data Members
 	const ObservationInterface* observation;
 
+    // Methods
 	size_t CountUnitType(UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type);
@@ -27,6 +28,7 @@ private:
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
+    bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
 
 	const Unit* FindNearestMineralPatch(const Point2D& start);
 	const Unit* FindNearestVespenes(const Point2D& start);
@@ -36,7 +38,10 @@ private:
 	
 	bool TryBuildForge();
 	bool TryBuildCyberneticScore();
+    
 	bool TryBuildAssimilator();
+    bool TryBuildGas(AbilityID build_ability, UnitTypeID worker_type, Point2D base_location);
+    
 	bool TryBuildPylon();
 	bool TryBuildDarkShrine();
 	bool TryBuildFleetBeacon();
@@ -50,12 +55,14 @@ private:
 	bool TryBuildShieldBattery();
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
-	bool TryExpendBase();
+	bool TryExpandBase();
 
 	void Mine(const Unit* unit,const Unit* nexus);
-	void GoingMerry::CollectVespeneGas(const Unit* unit, const Unit* assimilator);
+	void CollectVespeneGas(const Unit* unit, const Unit* assimilator);
 	void WorkerHub(const Unit* unit);
-
+    
+    void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
+    void MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
 };
 
 #endif
