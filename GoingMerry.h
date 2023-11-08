@@ -7,6 +7,7 @@
 #include <sc2api/sc2_unit_filters.h>
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
+#include <ctime>
 
 using namespace sc2;
 
@@ -22,11 +23,12 @@ private:
 
 	size_t CountUnitType(UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
-	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type);
-	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type, bool is_expansion = false);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type, bool is_expansion = false);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
+	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
 
 	const Unit* FindNearestMineralPatch(const Point2D& start);
 	const Unit* FindNearestVespenes(const Point2D& start);
@@ -50,7 +52,7 @@ private:
 	bool TryBuildShieldBattery();
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
-	bool TryExpandBase();
+	bool TryBuildExpansionNexus();
 
 	void Mine(const Unit* unit,const Unit* nexus);
 	void CollectVespeneGas(const Unit* unit, const Unit* assimilator);
@@ -59,6 +61,15 @@ private:
 	std::vector<const Unit *> enemy_units;
 	std::vector<const Unit *> enemy_bases;
 	std::vector<const Unit *> scouts;
+
+	GameInfo game_info;
+	Point3D start_location;
+	Point3D staging_location;
+	std::vector<Point3D> expansions;
+	int target_worker_count = 15;
+
+	void BuildOrder();
+
 	void TrySendScouts();
 	void SendScouting();
 	sc2::Point2D GetRandomMapLocation();
