@@ -11,6 +11,7 @@ void GoingMerry::OnGameStart() {
     expansions = search::CalculateExpansionLocations(Observation(), Query());
     start_location = Observation()->GetStartLocation();
     staging_location = start_location;
+    srand(time(0)); // use current time as seed for random generator
 
     return; 
 }
@@ -34,6 +35,11 @@ void GoingMerry::OnStep()
     BuildOrder();
 
     if (TryBuildPylon())
+    {
+        return;
+    }
+
+    if (TryBuildAssimilator())
     {
         return;
     }
@@ -88,6 +94,15 @@ void GoingMerry::WorkerHub(const Unit* unit)
     const Units allNexus = observation->GetUnits(Unit::Alliance::Self,IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
     const Units allAssimilator = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ASSIMILATOR));
 
+    for (const auto& nexus : allNexus)
+    {
+        if (nexus->assigned_harvesters < nexus->ideal_harvesters)
+        {
+            Mine(unit, nexus);
+            return;
+        }
+    }
+
     for (const auto& assimilator : allAssimilator)
     {
         if (assimilator->assigned_harvesters < assimilator->ideal_harvesters)
@@ -96,17 +111,6 @@ void GoingMerry::WorkerHub(const Unit* unit)
             return;
         }
     }
-    for (const auto& nexus : allNexus)
-    {
-        if (nexus->assigned_harvesters < nexus->ideal_harvesters)
-        {
-            Mine(unit,nexus);
-            return;
-        }
-    }
-
-
-
 }
 
 void GoingMerry::Mine(const Unit* unit,const Unit* nexus)
@@ -152,12 +156,18 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_T
 
     float rx = GetRandomScalar();
     float ry = GetRandomScalar();
+    Point2D target_position = Point2D(unit_to_build->pos.x + rx * 15.0f, unit_to_build->pos.y + ry * 15.0f);
 
-    Actions()->UnitCommand(unit_to_build,
-        ability_type_for_structure,
-        Point2D(unit_to_build->pos.x + rx * 15.0f, unit_to_build->pos.y + ry * 15.0f));
+    if (Query()->Placement(ability_type_for_structure, target_position))
+    {
+        Actions()->UnitCommand(unit_to_build,
+            ability_type_for_structure,
+            target_position);
 
-    return true;
+        return true;
+    }
+
+    return false;
 }
 
 bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE, bool is_expansion) {
@@ -298,12 +308,16 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, const 
         }
     }
 
-    Actions()->UnitCommand(unit_to_build,
-        ability_type_for_structure,
-        target);
+    if (Query()->Placement(ability_type_for_structure, target->pos))
+    {
+        Actions()->UnitCommand(unit_to_build,
+            ability_type_for_structure,
+            target);
 
-    return true;
+        return true;
+    }
 
+    return false;
 }
 
 #pragma endregion
@@ -391,19 +405,34 @@ const Unit* GoingMerry::FindNearestMineralPatch(const Point2D& start) {
 bool GoingMerry::TryBuildForge() {
     //const ObservationInterface* observation = Observation();
     if (CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) < 1)
-        return false;
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) > 0) {
+    {
         return false;
     }
+
+    //if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) > 0) {
+    //    return false;
+    //}
 
     return TryBuildStructure(ABILITY_ID::BUILD_FORGE);
 }
 
 bool GoingMerry::TryBuildAssimilator()
 {
+    const ObservationInterface* observation = Observation();
+    const Units bases = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
+
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_ASSIMILATOR) >= bases.size() * 2)
+    {
+        return false;
+    }
     const Unit* target = nullptr;
 
-    target = FindNearestVespenes(observation->GetStartLocation());
+    int random_index = rand() % bases.size();
+
+    const Unit *base = bases[random_index];
+
+    target = FindNearestVespenes(base->pos);
+ 
     if (!target)
     {
         return false;
@@ -448,10 +477,10 @@ bool GoingMerry::TryBuildCyberneticsCore()
     {
         return false;
     }    
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) > 0)
-    {
-        return false;
-    }
+    //if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) > 0)
+    //{
+    //    return false;
+    //}
     return TryBuildStructure(ABILITY_ID::BUILD_CYBERNETICSCORE);
 }
 
@@ -483,10 +512,10 @@ bool GoingMerry::TryBuildFleetBeacon()
 
 bool GoingMerry::TryBuildGateway()
 {
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) > 0)
-    {
-        return false;
-    }
+    //if (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) > 0)
+    //{
+    //    return false;
+    //}
     return TryBuildStructure(ABILITY_ID::BUILD_GATEWAY);
 }
 
@@ -561,6 +590,15 @@ bool GoingMerry::TryBuildExpansionNexus()
 
     const Units bases = observation->GetUnits(Unit::Alliance::Self,IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
     const Units assimilators = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ASSIMILATOR));
+
+    Units units = observation->GetUnits(Unit::Alliance::Self);
+    for (const auto& unit : units) {
+        for (const auto& order : unit->orders) {
+            if (order.ability_id == ABILITY_ID::BUILD_NEXUS) {
+                return false;
+            }
+        }
+    }
 
     for (const auto& assimilator : assimilators)
     {
