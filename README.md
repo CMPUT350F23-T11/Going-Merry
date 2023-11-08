@@ -42,16 +42,12 @@ Note: Try opening the SC2 game client before installing. If the game crashes bef
 $ git clone --recursive https://github.com/CMPUT350-SC2Bot/Going-Merry.git
 $ cd Going-Merry
 
-:: Create build directory.
-$ mkdir build
-$ cd build
-
-:: Generate a Makefile
+:: Create build directory and generate a Makefile
 :: Use 'cmake -DCMAKE_BUILD_TYPE=Debug ../' if debug info is needed
-$ cmake ../
+$ cmake -B build -G Xcode
 
 :: Build
-$ make
+$ open build/GoingMerry.xcodeproj
 ```
 
 ## Linux

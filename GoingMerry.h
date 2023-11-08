@@ -8,58 +8,54 @@
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
 
-#include <string>
-#include <vector>
-#include <stdlib.h>
-
 using namespace sc2;
-using namespace std;
 
 class GoingMerry : public Agent {
 public:
 	void OnGameStart();
-
 	void OnStep();
-
 	void OnUnitIdle(const Unit* unit);
 
 private:
 
-	int target_worker_count = 15;
-	int max_worker_count = 70;
-	GameInfo game_info_;
-	vector<Point3D> expansions;
-	Point3D startLocation;
-	Point3D stagingLocation;
-	string last_action_text_;
-
-	bool TryBuildPylon();
-
-	int GoingMerry::GetExpectedWorkers(UNIT_TYPEID vespene_building_type);
-
-	size_t CountUnitType(const ObservationInterface* observation, UnitTypeID unit_type);
-
-	void BuildOrder();
-
-	bool TryExpand(AbilityID build_ability, UnitTypeID worker_type);
+	const ObservationInterface* observation;
 
 	size_t CountUnitType(UNIT_TYPEID unit_type);
-
-	bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
-
-	bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
-
-	bool GoingMerry::TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false);
-
-	bool TryBuildSupplyDepot();
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
 
 	const Unit* FindNearestMineralPatch(const Point2D& start);
+	const Unit* FindNearestVespenes(const Point2D& start);
+	
+	bool StillNeedingWorkers();
+	bool AlreadyBuilt(const Unit* ref, const Units units);
+	
+	bool TryBuildForge();
+	bool TryBuildCyberneticScore();
+	bool TryBuildAssimilator();
+	bool TryBuildPylon();
+	bool TryBuildDarkShrine();
+	bool TryBuildFleetBeacon();
+	bool TryBuildGateway();
+	bool TryBuildPhotonCannon();
+	bool TryBuildRoboticsFacility();
+	bool TryBuildStargate();
+	bool TryBuildTemplarArchives();
+	bool TryBuildTwilightCouncil();
+	bool TryBuildWarpGate();
+	bool TryBuildShieldBattery();
+	bool TryBuildStasisWard();
+	bool TryBuildRoboticsBay();
+	bool TryExpendBase();
 
-	bool TryBuildExpansionNexus();
+	void Mine(const Unit* unit,const Unit* nexus);
+	void GoingMerry::CollectVespeneGas(const Unit* unit, const Unit* assimilator);
+	void WorkerHub(const Unit* unit);
 
-	void GoingMerry::OnGameEnd();
-
-	void GoingMerry::MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
 };
 
 #endif
