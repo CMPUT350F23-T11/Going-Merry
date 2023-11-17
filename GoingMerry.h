@@ -28,8 +28,13 @@ private:
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
+    bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
 	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
 
+    
+    void MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
+    void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
+    
 	const Unit* FindNearestMineralPatch(const Point2D& start);
 	const Unit* FindNearestVespenes(const Point2D& start);
 	
@@ -39,6 +44,7 @@ private:
 	bool TryBuildForge();
 	bool TryBuildCyberneticsCore();
 	bool TryBuildAssimilator();
+    bool TryBuildGas(AbilityID build_ability, UnitTypeID worker_type, Point2D base_location);
 	bool TryBuildPylon();
 	bool TryBuildDarkShrine();
 	bool TryBuildFleetBeacon();

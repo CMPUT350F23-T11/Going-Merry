@@ -14,6 +14,25 @@ using namespace std;
 // played against other bots
 
 int main(int argc, char* argv[]) {
-	RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
+//	RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
+    
+    // RunBot doesn't work for me, I use below instead (sam)
+    // -------------------------------------------------
+    Coordinator coordinator;
+    coordinator.LoadSettings(argc, argv);
+
+    GoingMerry bot;
+    coordinator.SetParticipants({
+        CreateParticipant(Race::Protoss, &bot),
+        CreateComputer(Race::Zerg)
+    });
+
+    coordinator.LaunchStarcraft();
+    coordinator.StartGame(sc2::kMapBelShirVestigeLE);
+
+    while (coordinator.Update()) {
+    }
+    // -------------------------------------------------
+    
 	return 0;
 }
