@@ -74,7 +74,7 @@ private:
 	std::vector<Point3D> expansions;
 	int target_worker_count = 15;
 
-	void BuildOrder();
+	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);
 
 	void TrySendScouts();
 	void SendScouting();
