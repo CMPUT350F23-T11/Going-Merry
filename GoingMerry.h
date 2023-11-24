@@ -65,8 +65,9 @@ private:
 	void WorkerHub(const Unit* unit);
 
 	std::vector<const Unit *> enemy_units;
-	std::vector<const Unit *> enemy_bases;
+	// std::vector<const Unit *> enemy_bases;
 	std::vector<const Unit *> scouts;
+	std::vector<sc2::Point2D> visitedLocations;
 
 	GameInfo game_info;
 	Point3D start_location;
@@ -78,7 +79,10 @@ private:
 
 	void TrySendScouts();
 	void SendScouting();
-	sc2::Point2D GetRandomMapLocation();
+	sc2::Point2D GetScoutMoveLocation();
+	void MoveScouts();
+	void SendHarassing(const sc2::Unit *base);
+	void RemoveMartyredScouts();
 
 };
 
