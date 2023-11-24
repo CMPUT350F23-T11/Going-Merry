@@ -16,12 +16,15 @@ public:
 	void OnGameStart();
 	void OnStep();
 	void OnUnitIdle(const Unit* unit);
+	void OnUpgradeCompleted(UpgradeID upgrade);
 
 private:
 
 	const ObservationInterface* observation;
+	bool warpgate_reasearched = false;
+	bool blink_researched = false;
+	bool charge_researched = false;
 
-	size_t CountUnitType(UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type, bool is_expansion = false);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type, bool is_expansion = false);
@@ -30,7 +33,6 @@ private:
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
     bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
 	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
-
     
     void MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
     void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
@@ -54,7 +56,7 @@ private:
 	bool TryBuildStargate();
 	bool TryBuildTemplarArchives();
 	bool TryBuildTwilightCouncil();
-	bool TryBuildWarpGate();
+	void TryBuildWarpGate();
 	bool TryBuildShieldBattery();
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
@@ -73,6 +75,8 @@ private:
 	Point3D staging_location;
 	std::vector<Point3D> expansions;
 	int target_worker_count = 15;
+	int max_colossus_count = 5;
+	int max_stalker_count = 20;
 
 	void BuildOrder();
 
@@ -80,6 +84,13 @@ private:
 	void SendScouting();
 	sc2::Point2D GetRandomMapLocation();
 
+	bool TryBuildUnit(AbilityID ability_type, UnitTypeID unit_type);
+	bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type);
+	void ManageUpgrades();
+	bool TryBuildArmy();
+	bool TryWarpInUnit(ABILITY_ID ability_type);
+
+	size_t CountUnitType(UNIT_TYPEID unit_type);
 };
 
 #endif
