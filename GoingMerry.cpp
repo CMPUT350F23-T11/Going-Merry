@@ -14,7 +14,6 @@ void GoingMerry::OnGameStart() {
     start_location = Observation()->GetStartLocation();
     staging_location = start_location;
     srand(time(0)); // use current time as seed for random generator
-
     return; 
 }
 
@@ -927,34 +926,86 @@ bool GoingMerry::TryBuildStasisWard()
 
 #pragma endregion
 
+#pragma region Try Send Scouting
 
-sc2::Point2D GoingMerry::GetRandomMapLocation() 
+sc2::Point2D GoingMerry::GetScoutMoveLocation() 
 {
     const sc2::GameInfo& game_info = Observation()->GetGameInfo();
-        
+
     // Define boundaries for the random location
     float minX = game_info.playable_min.x;
     float minY = game_info.playable_min.y;
     float maxX = game_info.playable_max.x;
     float maxY = game_info.playable_max.y;
 
-    // Generate random coordinates within the boundaries
-    float randomX = sc2::GetRandomInteger(minX, maxX - 1) + sc2::GetRandomFraction();
-    float randomY = sc2::GetRandomInteger(minY, maxY - 1) + sc2::GetRandomFraction();
+    // Our base
+    const sc2::Units& base = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
 
-    return sc2::Point2D(randomX, randomY);
+    // Get all mineral fields
+    sc2::Units minerals = Observation()->GetUnits(Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
+
+    // Set maximum attempts to avoid an infinite loop
+    const int maxAttempts = 10;
+    int attemptCount = 0;
+
+    // Generate random coordinates near mineral fields
+    Point2D target_location;
+    Point2D exact_location;
+    float distFromScout = 0;
+    float distFromBase = 0;
+
+    while (distFromScout < 5.0f && distFromBase < 10.0f && attemptCount < maxAttempts)
+    {
+        if (minerals.empty()) 
+        {
+            // If no mineral fields are found, revert to the original random location logic
+            float randomX = sc2::GetRandomInteger(minX, maxX - 1) + sc2::GetRandomFraction();
+            float randomY = sc2::GetRandomInteger(minY, maxY - 1) + sc2::GetRandomFraction();
+            target_location = sc2::Point2D(randomX, randomY);
+            exact_location = target_location;
+        } 
+        else 
+        {
+            // Choose a random mineral field
+            const sc2::Unit *&randomMineral = sc2::GetRandomEntry(minerals);
+
+            // Generate random coordinates near the chosen mineral field
+            float offsetRadius = 5.0f;  // You can adjust this radius as needed
+            float randomOffsetX = sc2::GetRandomInteger(-offsetRadius, offsetRadius) + sc2::GetRandomFraction();
+            float randomOffsetY = sc2::GetRandomInteger(-offsetRadius, offsetRadius) + sc2::GetRandomFraction();
+           
+            target_location = randomMineral->pos + sc2::Point2D(randomOffsetX, randomOffsetY);
+            exact_location = randomMineral->pos;
+        }
+
+        // Check if the target_location is not in the list of previously visited locations
+        if (std::find(visitedLocations.begin(), visitedLocations.end(), exact_location) == visitedLocations.end())
+        {
+            // Update the list of visited locations
+            visitedLocations.push_back(exact_location);
+
+            // Calculate distances
+            distFromScout = Distance2D(scouts[0]->pos, target_location);
+            distFromBase = Distance2D(base[0]->pos, target_location);
+        }
+
+        attemptCount++;
+    }
+
+    // Clear the list if it becomes too large to avoid excessive memory usage
+    if (visitedLocations.size() >= minerals.size())
+    {
+        visitedLocations.clear();
+    }
+
+    return target_location;
 }
 
 
-void GoingMerry::SendScouting()
+
+void GoingMerry::MoveScouts()
 {
-    Point2D target_location = GetRandomMapLocation();
-    float dist = Distance2D(scouts[0]->pos, target_location);
-    while (dist < 50)
-    {
-        target_location = GetRandomMapLocation();
-        dist = Distance2D(scouts[0]->pos, target_location);
-    }
+    Point2D target_location = GetScoutMoveLocation(); // get location to send scouts to 
 
     if (scouts[0]->orders.empty()) {
         Actions()->UnitCommand(scouts[0], ABILITY_ID::GENERAL_MOVE, target_location);
@@ -966,67 +1017,117 @@ void GoingMerry::SendScouting()
             Actions()->UnitCommand(scouts[1], ABILITY_ID::GENERAL_MOVE, target_location);
         }
     }
-    const sc2::Units& cur_enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy);
+}
+
+void GoingMerry::SendScouting()
+{
+    MoveScouts(); // move scouts to new location
+    const sc2::Units& cur_enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy); // check if any enemies are found
     bool found = false;
+    bool foundBase = false;
+    const sc2::Unit *base;
+
+    // add unit to either enemy_bases vector or enemy_units vector based on whether or not its the first time encountering it
     for (auto cur : cur_enemy_units)
     {
         found = false;
-        if (cur->unit_type == sc2::UNIT_TYPEID::TERRAN_COMMANDCENTER ||
+        if (!(cur->unit_type == sc2::UNIT_TYPEID::TERRAN_COMMANDCENTER ||
             cur->unit_type == sc2::UNIT_TYPEID::PROTOSS_NEXUS ||
-            cur->unit_type == sc2::UNIT_TYPEID::ZERG_HATCHERY)
-        {
-            for (auto seen : enemy_bases)
-            {
-                if (seen == cur)
-                {
-                    found = true;
-                }
-            }
-            if (!found)
-            {
-                cout << "Found base - new count: " << enemy_bases.size() + 1 << endl;
-                cout << "Unit type: " << UnitTypeToName(cur->unit_type) << endl;
-                enemy_bases.push_back(cur);
-            }
-        }
-        else
+            cur->unit_type == sc2::UNIT_TYPEID::ZERG_HATCHERY))
         {
             for (auto seen : enemy_units)
             {
-                if (seen == cur)
+                if (seen->tag == cur->tag)
                 {
                     found = true;
                 }
             }
             if (!found)
             {
-                cout << "Found enemy - new count: " << enemy_units.size() + 1 << endl;
-                cout << "Unit type: " << UnitTypeToName(cur->unit_type) << endl;
                 enemy_units.push_back(cur);
             }
         }
     }
 }
 
+void GoingMerry::SendHarassing(const sc2::Unit *base)
+{
+    // send to harass based on the enemy base location
+    if (scouts[0]->orders.empty()) 
+    {
+        Actions()->UnitCommand(scouts[0], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
+        Actions()->UnitCommand(scouts[1], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
+    }
+    else if (!scouts[0]->orders.empty()) 
+    {
+        if (scouts[0]->orders.front().ability_id != ABILITY_ID::ATTACK_ATTACKBARRAGE) 
+        {
+            Actions()->UnitCommand(scouts[0], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
+            Actions()->UnitCommand(scouts[1], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
+        }
+    }
+}
+
+void GoingMerry::RemoveMartyredScouts()
+{
+    for (auto it = scouts.begin(); it != scouts.end();) // check each scout to see if alive
+    {
+        if (!(*it)->is_alive)
+        {
+            it = scouts.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
 
 void GoingMerry::TrySendScouts()
-{
-    if (scouts.size() != 2)
+{    
+    // checking if a base is already found -> send harassing if conditions are met
+    if (scouts.size() > 0)
     {
-        if (CountUnitType(UNIT_TYPEID::PROTOSS_ADEPT) > 2)
+        RemoveMartyredScouts();
+    }
+    if (scouts.size() < 2)
+    {
+        if (scouts.size() == 0) // if need to add 2 scouts
         {
-            const sc2::Units& adepts = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ADEPT));
-            scouts.push_back(adepts[0]);
-            scouts.push_back(adepts[1]);
-            SendScouting();
+            if (CountUnitType(UNIT_TYPEID::PROTOSS_ADEPT) > 2)
+            {
+                const sc2::Units& adepts = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ADEPT));
+                scouts.push_back(adepts[0]);
+                scouts.push_back(adepts[1]);
+            }
+        }
+        else // if only need to add 1 scout
+        {
+            if (CountUnitType(UNIT_TYPEID::PROTOSS_ADEPT) > 1)
+            {
+                const sc2::Units& adepts = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ADEPT));
+                scouts.push_back(adepts[0]);
+            }
         }
         return;
     }
-    if (scouts.size() == 2)
+    
+    if (scouts.size() == 2) // if a pair of scouts available send to harass or scout
     {
-        SendScouting();
-        return;
-    }   
+        const sc2::Units& enemy_bases = Observation()->GetUnits(Unit::Alliance::Enemy, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
+        if (enemy_bases.size() > 0) // only send harass if an enemy base is found
+        {
+            for (auto base : enemy_bases)
+            {
+                SendHarassing(base);
+                break;
+            }
+        }
+        else
+        {
+            SendScouting();
+        }
+    }
 }
 
 
