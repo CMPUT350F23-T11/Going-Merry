@@ -949,18 +949,20 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
            CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 1 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) < 2){
             
+            std::cout<<"GATEWAY 2 1:13"<<std::endl;
             if(TryBuildGateway()){
-                std::cout<<"GATEWAY 2 1:13"<<std::endl;
+                std::cout<<"TRUE"<<std::endl;
             }
         }
         
         //      20      1:28      Cybernetics Core
         if(current_supply >= 20 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 1 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) <= 2 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 0 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2){
+            std::cout<<"CYBERNETICS 1 1:28"<<std::endl;
             if(TryBuildCyberneticsCore()){
-                std::cout<<"CYBERNETICS 1 1:28"<<std::endl;
+                std::cout<<"TRUE"<<std::endl;
             }
         }
         
@@ -970,20 +972,20 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
            CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 1 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 1 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2){
+            std::cout<<"PYLON 2 1:37"<<std::endl;   // 31 cap
             if(TryBuildPylon()){
-                std::cout<<"PYLON 2 1:37"<<std::endl;   // 31 cap
+                std::cout<<"TRUE"<<std::endl;   // 31 cap
             }
         }
         
         
         //      23      2:02      Stalkers x2 (Chrono Boost) (2:24 250 minerals)
         if(current_supply >= 23 &&
-           current_supply < 27 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 2 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 1 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2 &&
            warp_upgrade_complete == false){
-            
+            std::cout<<"STALKERS x2 AND RESEARCH WARPGATE"<<std::endl;
             Units cores = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE));
             Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
             Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
@@ -1069,7 +1071,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
            CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 4 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 3 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2 &&
+           (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) <= 2 || CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) <= 2) &&
            CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 1){
             // Still building stalker, cancel queue
             Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
@@ -1080,9 +1082,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
                     std::cout<<"STALKER CANCEL 2:56"<<std::endl;        //194s
                 }
             }
-            
+            std::cout<<"EXPAND 1 2:56"<<std::endl;
+
             if(TryBuildExpansionNexus()){
-                std::cout<<"EXPAND 1 2:56"<<std::endl;
+                std::cout<<"TRUE"<<std::endl;
             }
         }
         
@@ -1090,10 +1093,15 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         if(current_supply >= 32 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 4 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 3 &&
+           (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2 || CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 2) &&
            CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) < 1){
-            if(TryBuildRoboticsFacility()){ // 224s end 300s
-                std::cout<<"ROBOTICS FAC 1 3:10 "<<std::endl;
+            std::cout<<"ROBOTICS FAC 1 3:10 "<<std::endl;
+
+            for(int i = 0; i < 30; ++i){
+                if(TryBuildRoboticsFacility()){ // 224s end 300s
+                    std::cout<<"TRUE"<<std::endl;
+                }
             }
         }
         
@@ -1101,12 +1109,68 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         if(current_supply >= 33 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 4 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 3 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 2 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
            CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1){
+            std::cout<<"PYLON 4 3:22 "<<std::endl;   // 47 cap
+
             if(TryBuildPylon()){ // 224s
-                std::cout<<"PYLON 4 3:22 "<<std::endl;   // 47 cap
+                std::cout<<"TRUE"<<std::endl;   // 47 cap
             }
         }
+        
+        //      32      3:48      Gateway
+        if(current_supply >= 33 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 4 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 2 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 0 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1){
+            std::cout<<"GATEWAY 3 3:48"<<std::endl;
+
+            if(TryBuildGateway()){
+                std::cout<<"TRUE"<<std::endl;
+            }
+        }
+        // ENEMY ATTACKS AROUND HERE
+        // BUILD ORDER TIMES ARE TOO LATE COMPARED TO ORIGINAL
+        
+        //      34      3:57      Observer (Chrono Boost)
+        if(current_supply >= 34 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 4 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 3 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1){
+            std::cout<<"OBSERVER 3:57"<<std::endl;
+            
+            Units rfacs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY));
+            for(const auto& rfac: rfacs){
+                if(CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 0 &&
+                   rfac->orders.empty()){
+                    Actions()->UnitCommand(rfac, ABILITY_ID::TRAIN_OBSERVER);
+                }
+            }
+            
+        
+        }
+        
+        //      34      4:00      Robotics Bay
+        if(current_supply >= 34 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 4 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 3 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY) == 0 &&
+           CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 1){
+            std::cout<<"ROB BAY 4:00"<<std::endl;
+            if(TryBuildRoboticsBay()){
+                std::cout<<"TRUE"<<std::endl;
+            }
+            
+        }
+        
+        
+        
         
         
         // END BUILD ORDER
@@ -1116,9 +1180,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     
 
 
-//      32      3:48      Gateway
-//      34      3:57      Observer (Chrono Boost)
-//      34      4:00      Robotics Bay
+
+
+
 //      35      4:06      Stalker x2
 //      43      4:27      Immortal (Chrono Boost)
 //      49      4:45      Assimilator x2
