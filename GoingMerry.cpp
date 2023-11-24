@@ -1053,7 +1053,6 @@ void GoingMerry::TrySendScouts()
         {
             for (auto base : enemy_bases)
             {
-                cout << "Sending harassing" << endl;
                 SendHarassing(base);
                 break;
             }
