@@ -16,6 +16,7 @@ public:
 	void OnGameStart();
 	void OnStep();
 	void OnUnitIdle(const Unit* unit);
+    std::vector<Point3D> expansions_;
 
 private:
 
@@ -23,12 +24,14 @@ private:
 
 	size_t CountUnitType(UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
-	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type, bool is_expansion = false);
+    //Try build structure given a location. This is used most of the time
+    bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type, bool is_expansion = false);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
     bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
+    bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
 	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
 
     
@@ -59,6 +62,8 @@ private:
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
 	bool TryBuildExpansionNexus();
+    
+    bool TryWarpInUnit(ABILITY_ID ability_type_for_unit);
 
 	void Mine(const Unit* unit,const Unit* nexus);
 	void CollectVespeneGas(const Unit* unit, const Unit* assimilator);

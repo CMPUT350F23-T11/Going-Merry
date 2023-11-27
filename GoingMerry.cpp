@@ -54,10 +54,10 @@ void GoingMerry::OnStep()
 
     BuildOrder(ingame_time, current_supply, current_minerals, current_gas);
 
-//    if (TryBuildPylon())
-//    {
-//        return;
-//    }
+    if (TryBuildPylon())
+    {
+        return;
+    }
 //
 //    if (TryBuildAssimilator())
 //    {
@@ -264,46 +264,45 @@ bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_T
     return false;
 }
 
-bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE, bool is_expansion) {
+//Try build structure given a location. This is used most of the time
+bool GoingMerry::TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false) {
 
-    // If a unit already is building a supply structure of this type, do nothing.
-    // Also get an scv to build the structure.
-    const Unit* unit_to_build = nullptr;
-    Units units = observation->GetUnits(Unit::Alliance::Self);
-    for (const auto& unit : units) {
-        for (const auto& order : unit->orders) {
+    const ObservationInterface* observation = Observation();
+    Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
+
+    //if we have no workers Don't build
+    if (workers.empty()) {
+        return false;
+    }
+
+    // Check to see if there is already a worker heading out to build it
+    for (const auto& worker : workers) {
+        for (const auto& order : worker->orders) {
             if (order.ability_id == ability_type_for_structure) {
                 return false;
             }
         }
-        if (unit->unit_type == unit_type) {
-            unit_to_build = unit;
-        }
     }
 
-    if (Query()->PathingDistance(unit_to_build, position) < 0.1f)
-    {
+    // If no worker is already building one, get a random worker to build one
+    const Unit* unit = GetRandomEntry(workers);
+
+    // Check to see if unit can make it there
+    if (Query()->PathingDistance(unit, location) < 0.1f) {
         return false;
     }
-    if (!is_expansion)
-    {
-        for (const auto& expansion : expansions)
-        {
-            if (Distance2D(position, Point2D(expansion.x, expansion.y)) < 7)
-            {
+    if (!isExpansion) {
+        for (const auto& expansion : expansions_) {
+            if (Distance2D(location, Point2D(expansion.x, expansion.y)) < 7) {
                 return false;
             }
         }
     }
-
-    if (Query()->Placement(ability_type_for_structure, position))
-    {
-        Actions()->UnitCommand(unit_to_build,
-            ability_type_for_structure,
-            position);
+    // Check to see if unit can build there
+    if (Query()->Placement(ability_type_for_structure, location)) {
+        Actions()->UnitCommand(unit, ability_type_for_structure, location);
         return true;
     }
-
     return false;
 
 }
@@ -441,6 +440,31 @@ bool GoingMerry::TryBuildStructure(AbilityID ability_type_for_structure, UnitTyp
 
 }
 
+bool GoingMerry::TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID) {
+    const ObservationInterface* observation = Observation();
+
+    //Need to check to make sure its a pylon instead of a warp prism
+    std::vector<PowerSource> power_sources = observation->GetPowerSources();
+    if (power_sources.empty()) {
+        return false;
+    }
+
+    const PowerSource& random_power_source = GetRandomEntry(power_sources);
+    if (observation->GetUnit(random_power_source.tag) != nullptr) {
+        if (observation->GetUnit(random_power_source.tag)->unit_type == UNIT_TYPEID::PROTOSS_WARPPRISM) {
+            return false;
+        }
+    }
+    else {
+        return false;
+    }
+    float radius = random_power_source.radius;
+    float rx = GetRandomScalar();
+    float ry = GetRandomScalar();
+    Point2D build_location = Point2D(random_power_source.position.x + rx * radius, random_power_source.position.y + ry * radius);
+    return TryBuildStructure(ability_type_for_structure, UNIT_TYPEID::PROTOSS_PROBE, build_location);
+}
+
 #pragma endregion
 
 #pragma region Assistant Functions
@@ -503,7 +527,7 @@ bool GoingMerry::TryBuildForge() {
     //    return false;
     //}
 
-    return TryBuildStructure(ABILITY_ID::BUILD_FORGE);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_FORGE, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildAssimilator()
@@ -560,10 +584,10 @@ bool GoingMerry::TryBuildGas(AbilityID build_ability, UnitTypeID worker_type, Po
 bool GoingMerry::TryBuildPylon() {
     const ObservationInterface* observation = Observation();
 
-    // If we are not supply capped, don't build a supply depot.
-//    if (observation->GetFoodUsed() < observation->GetFoodCap() - 6) {
-//        return false;
-//    }
+//     If we are not supply capped, don't build a supply depot.
+    if (observation->GetFoodUsed() < observation->GetFoodCap() - 1) {
+        return false;
+    }
 
     if (observation->GetMinerals() < 100) {
         return false;
@@ -584,7 +608,7 @@ bool GoingMerry::TryBuildPylon() {
     float ry = GetRandomScalar();
     Point2D build_location = Point2D(staging_location.x + rx * 15, staging_location.y + ry * 15);
 
-    return TryBuildStructure(ABILITY_ID::BUILD_PYLON, build_location, UNIT_TYPEID::PROTOSS_PROBE);
+    return TryBuildStructure(ABILITY_ID::BUILD_PYLON, UNIT_TYPEID::PROTOSS_PROBE, build_location);
 }
 
 bool GoingMerry::TryBuildCyberneticsCore()
@@ -593,7 +617,7 @@ bool GoingMerry::TryBuildCyberneticsCore()
     {
         return false;
     }
-    return TryBuildStructure(ABILITY_ID::BUILD_CYBERNETICSCORE);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_CYBERNETICSCORE, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildDarkShrine()
@@ -606,7 +630,7 @@ bool GoingMerry::TryBuildDarkShrine()
     {
         return false;
     }
-    return TryBuildStructure(ABILITY_ID::BUILD_DARKSHRINE);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_DARKSHRINE, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildFleetBeacon()
@@ -619,12 +643,12 @@ bool GoingMerry::TryBuildFleetBeacon()
     {
         return false;
     }
-    return TryBuildStructure(ABILITY_ID::BUILD_FLEETBEACON);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_FLEETBEACON, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildGateway()
 {
-    return TryBuildStructure(ABILITY_ID::BUILD_GATEWAY);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildRoboticsFacility()
@@ -633,7 +657,7 @@ bool GoingMerry::TryBuildRoboticsFacility()
     {
         return false;
     }
-    return TryBuildStructure(ABILITY_ID::BUILD_ROBOTICSFACILITY);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_ROBOTICSFACILITY, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildRoboticsBay()
@@ -646,7 +670,7 @@ bool GoingMerry::TryBuildRoboticsBay()
     {
         return false;
     }
-    return TryBuildStructure(ABILITY_ID::BUILD_ROBOTICSBAY);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_ROBOTICSBAY, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildStargate()
@@ -659,7 +683,7 @@ bool GoingMerry::TryBuildStargate()
     {
         return false;
     }
-    return TryBuildStructure(ABILITY_ID::BUILD_STARGATE);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_STARGATE, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildTemplarArchives()
@@ -672,7 +696,7 @@ bool GoingMerry::TryBuildTemplarArchives()
     {
         return false;
     }
-    return TryBuildStructure(ABILITY_ID::BUILD_TEMPLARARCHIVE);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_TEMPLARARCHIVE, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildTwilightCouncil()
@@ -685,7 +709,7 @@ bool GoingMerry::TryBuildTwilightCouncil()
     {
         return false;
     }
-    return TryBuildStructure(ABILITY_ID::BUILD_TWILIGHTCOUNCIL);
+    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_TWILIGHTCOUNCIL, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildExpansionNexus()
@@ -754,6 +778,41 @@ bool GoingMerry::TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type)
         return true;
     }
 
+    return false;
+}
+
+bool GoingMerry::TryWarpInUnit(ABILITY_ID ability_type_for_unit) {
+    const ObservationInterface* observation = Observation();
+    std::vector<PowerSource> power_sources = observation->GetPowerSources();
+    Units warpgates = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_WARPGATE));
+
+    if (power_sources.empty()) {
+        return false;
+    }
+
+    const PowerSource& random_power_source = GetRandomEntry(power_sources);
+    float radius = random_power_source.radius;
+    float rx = GetRandomScalar();
+    float ry = GetRandomScalar();
+    Point2D build_location = Point2D(random_power_source.position.x + rx * radius, random_power_source.position.y + ry * radius);
+
+    // If the warp location is walled off, don't warp there.
+    // We check this to see if there is pathing from the build location to the center of the map
+    if (Query()->PathingDistance(build_location, Point2D(game_info.playable_max.x / 2, game_info.playable_max.y / 2)) < .01f) {
+        return false;
+    }
+
+    for (const auto& warpgate : warpgates) {
+        if (warpgate->build_progress == 1) {
+            AvailableAbilities abilities = Query()->GetAbilitiesForUnit(warpgate);
+            for (const auto& ability : abilities.abilities) {
+                if (ability.ability_id == ability_type_for_unit) {
+                    Actions()->UnitCommand(warpgate, ability_type_for_unit, build_location);
+                    return true;
+                }
+            }
+        }
+    }
     return false;
 }
 
@@ -889,6 +948,25 @@ void GoingMerry::TrySendScouts()
 void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t current_minerals, uint32_t current_gas)
 {
     std::cout<<"---"<<std::endl;
+    
+    // STRUCTURE/UNIT COUNTS
+    size_t pylon_count = CountUnitType(UNIT_TYPEID::PROTOSS_PYLON);
+    size_t gateway_count = CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY);
+    size_t warpgate_count = CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE);
+    size_t assimilator_count = CountUnitType(UNIT_TYPEID::PROTOSS_ASSIMILATOR);
+    size_t cybernetics_count = CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
+    size_t base_count = CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS);
+    size_t robotics_facility_count = CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+    size_t robotics_bay_count = CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY);
+    
+    size_t stalkers_count = CountUnitType(UNIT_TYPEID::PROTOSS_STALKER);
+    
+    // UNITS
+    Units cores = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE));
+    Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
+    Units warpgates = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_WARPGATE));
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    
     // UPGRADES
     const std::vector<UpgradeID> upgrades = observation->GetUpgrades();
     
@@ -901,280 +979,212 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
 
-    if(ingame_time >=12.0 && ingame_time < 73.0) {
-        //      14      0:20      Pylon
-        if(current_supply >= 14 && current_minerals >= 100 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) < 1){
-            if(TryBuildPylon()){
-                std::cout<<"PYLON 1 0:20"<<std::endl; // 23 cap
-            }
-            // TODO: build at chokepoint (TONY)
+    //      14      0:20      Pylon
+    if(pylon_count == 0 &&
+       assimilator_count < 1){
+        if(TryBuildPylon()){
+            std::cout<<"PYLON 1 0:20"<<std::endl; // 23 cap
         }
+        // TODO: build at chokepoint (TONY)
+    }
         
-        //      15      0:40      Gateway
-        if (CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 1 &&
-            current_minerals >= 150){
-            if(TryBuildGateway()){
-                std::cout<<"GATEWAY 1 0:40"<<std::endl;
-            }
-            // TODO: build at chokepoint (TONY)
-            // TODO: Send 1 probe to walk around enemy base to identify their buildings (ABEER)
+    //      15      0:40      Gateway
+    if (gateway_count == 0 &&
+        assimilator_count < 1){
+        if(TryBuildGateway()){
+            std::cout<<"GATEWAY 1 0:40"<<std::endl;
         }
+        // TODO: build at chokepoint (TONY)
+        // TODO: Send 1 probe to walk around enemy base to identify their buildings (ABEER)
+    }
         
-        //      16      0:48      Assimilator
-        //      17      0:58      Assimilator
-        if(CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_ASSIMILATOR) < 1 &&
-           current_supply >= 16){
-            if(TryBuildAssimilator()){
-                std::cout<<"GAS 1 0:48"<<std::endl;
-            }
+    //      16      0:48      Assimilator
+    //      17      0:58      Assimilator
+    if(gateway_count == 1 &&
+       assimilator_count < 1){
+        if(TryBuildAssimilator()){
+            std::cout<<"GAS 1 0:48"<<std::endl;
         }
+    }
         
-        if(CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_ASSIMILATOR) < 2 &&
-           current_supply >= 17){
-            if(TryBuildAssimilator()){
-                std::cout<<"GAS 2 0:58"<<std::endl;
-            }
+    if(gateway_count == 1 &&
+       assimilator_count < 2){
+        if(TryBuildAssimilator()){
+            std::cout<<"GAS 2 0:58"<<std::endl;
         }
     }
 
-
-    if(ingame_time >=73.0 && ingame_time < 600.0){
-        //      19      1:13      Gateway
-        if(current_supply >= 19 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) < 2){
-            
+    //      19      1:13      Gateway
+    if(warpgate_count == 0 &&
+       gateway_count < 2 &&
+       assimilator_count == 2){
+        if(TryBuildGateway()){
             std::cout<<"GATEWAY 2 1:13"<<std::endl;
-            if(TryBuildGateway()){
-                std::cout<<"TRUE"<<std::endl;
-            }
         }
+    }
         
-        //      20      1:28      Cybernetics Core
-        if(current_supply >= 20 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) <= 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 0 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2){
+    //      20      1:28      Cybernetics Core
+    if(gateway_count == 2 &&
+       assimilator_count == 2 &&
+       cybernetics_count == 0){
+        if(TryBuildCyberneticsCore()){
             std::cout<<"CYBERNETICS 1 1:28"<<std::endl;
-            if(TryBuildCyberneticsCore()){
-                std::cout<<"TRUE"<<std::endl;
+        }
+    }
+    
+    
+    //      23      2:02      Stalkers x2 (Chrono Boost) (2:24 250 minerals)
+    if(stalkers_count < 8 &&
+       gateway_count == 2 &&
+       cybernetics_count == 1 &&
+       warp_upgrade_complete == false){
+        std::cout<<"STALKERS x4"<<std::endl;
+        
+        if(pylon_count < 3){
+            TryBuildPylon();
+        }
+        
+        bool gateways_done = true;
+        for(const auto& gateway : gateways){
+            if (gateway->build_progress < 1.0f){
+                gateways_done = false;
             }
         }
         
-        //      20      1:37      Pylon
-        if(current_supply >= 20 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 0 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2){
-            std::cout<<"PYLON 2 1:37"<<std::endl;   // 31 cap
-            if(TryBuildPylon()){
-                std::cout<<"TRUE"<<std::endl;   // 31 cap
-            }
-        }
-        
-        
-        //      23      2:02      Stalkers x2 (Chrono Boost) (2:24 250 minerals)
-        if(current_supply >= 23 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2 &&
-           warp_upgrade_complete == false){
-            std::cout<<"STALKERS x2 AND RESEARCH WARPGATE"<<std::endl;
-            Units cores = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE));
-            Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
-            Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-            
-            bool gateways_done = true;
-            for(const auto& gateway : gateways){
-                if (gateway->build_progress < 1.0f){
-                    gateways_done = false;
+        if(gateways_done){
+            bool building_stalkers = false;
+            for(const auto& gateway: gateways){
+                if(cores.front()->build_progress == 1.0f && // 128s : 2:08 +6late
+                   gateway->orders.empty()){
+                    std::cout<<"STALKERS 2:02"<<std::endl;
+                    Actions()->UnitCommand(gateway, ABILITY_ID::TRAIN_STALKER); // 128s, 131s
+                    building_stalkers = true;
+                    Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateway);
                 }
             }
             
-            for (const auto& base : bases){
-                for(const auto& gateway: gateways){
-                    if(gateways_done &&
-                       cores.front()->build_progress == 1.0f && // 128s : 2:08 +6late
-                       CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 0 &&
-                       gateway->orders.empty()){
-                        std::cout<<"STALKERS 2:02"<<std::endl;
-                        Actions()->UnitCommand(gateway, ABILITY_ID::TRAIN_STALKER); // 128s, 131s
-                        Actions()->UnitCommand(base, ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateway);
-                        //      27      2:08      Warp Gate and Chronoboost
-                    }
-                }
-            }
-            //      27      2:08      Warp Gate
-            if (ingame_time > 134.0f){
+            if(building_stalkers == false){
                 Actions()->UnitCommand(cores.front(), ABILITY_ID::RESEARCH_WARPGATE);   // complete 3:48
                 std::cout<<"RESEARCH WARPGATE 2:08"<<std::endl;
                 Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, cores.front());
             }
-
         }
         
-        //      27      2:24      Stalker x2 (4 total)
-        if(current_supply >= 27 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) <= 3 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2 &&
-           warp_upgrade_complete == false){
-            Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
-            for(const auto& gateway: gateways){
-                if (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) < 4 &&
-                    gateway->orders.empty()){
-                    Actions()->UnitCommand(gateway, ABILITY_ID::TRAIN_STALKER);
-                    std::cout<<"STALKERS 2:24"<<std::endl;
-                }
-                
-                if(!gateway->orders.empty() && CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) < 3){
-                    if(TryBuildPylon()){
-                        std::cout<<"PYLON 3 2:36"<<CountUnitType(UNIT_TYPEID::PROTOSS_STALKER)<< std::endl; // 39 cap
-                    }
-                    
-                }
+    
+    }
+    
+    //      27      2:08      Warp Gate Research
+    if(stalkers_count == 8 &&
+       gateway_count == 2 &&
+       cybernetics_count == 1 &&
+       warp_upgrade_complete == false){
+        for(const auto& gateway: gateways){
+            if(!gateway->orders.empty()){
+                Actions()->UnitCommand(gateway, ABILITY_ID::CANCEL_LAST);
             }
-            
         }
+    }
         
-        //      31      2:36      Pylon
-        if(current_supply >= 30 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 3 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2 &&
-           warp_upgrade_complete == false){
-            
-            Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
-            for(const auto& gateway: gateways){
-                if (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) < 4 &&
-                    gateway->orders.empty()){
-                    Actions()->UnitCommand(gateway, ABILITY_ID::TRAIN_STALKER);
-                    std::cout<<"PYLON + STALKERS 2:36"<<std::endl;
-                }
-                else if(CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 4 &&
-                        !gateway->orders.empty()){
-                    Actions()->UnitCommand(gateway, ABILITY_ID::CANCEL_LAST);
-                    std::cout<<"STALKER CANCEL 2:36"<<std::endl;
-                }
-            }
-            
-        }
-        
-        //      31      2:56      Nexus
-        if(current_supply >= 31 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 4 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 3 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) == 1 &&
-           (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) <= 2 || CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) <= 2) &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 1){
-            // Still building stalker, cancel queue
-            Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
-            for(const auto& gateway: gateways){
-                if (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 4 &&
-                    !gateway->orders.empty()){
-                    Actions()->UnitCommand(gateway, ABILITY_ID::CANCEL_LAST);
-                    std::cout<<"STALKER CANCEL 2:56"<<std::endl;        //194s
-                }
-            }
+    //      31      2:56      Nexus
+    if(current_minerals >= 400 &&
+       stalkers_count <= 8 &&
+       cybernetics_count == 1 &&
+       (gateway_count <= 2 || warpgate_count <= 2) &&
+       base_count == 1){
+        if(TryBuildExpansionNexus()){
             std::cout<<"EXPAND 1 2:56"<<std::endl;
-
-            if(TryBuildExpansionNexus()){
-                std::cout<<"TRUE"<<std::endl;
-            }
         }
-        
+    }
+    
 //              32      3:10      Robotics Facility
-        if(current_supply >= 32 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 4 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 3 &&
-           (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 2 || CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 2) &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) < 1){
+    if(stalkers_count <= 8 &&
+       (gateway_count == 2 || warpgate_count == 2) &&
+       base_count == 2 &&
+       robotics_facility_count < 1){
+        
+        if(TryBuildRoboticsFacility()){
             std::cout<<"ROBOTICS FAC 1 3:10 "<<std::endl;
-
-            for(int i = 0; i < 30; ++i){
-                if(TryBuildRoboticsFacility()){ // 224s end 300s
-                    std::cout<<"TRUE"<<std::endl;
-                }
-            }
         }
-        
-        //      33      3:22      Pylon
-        if(current_supply >= 33 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) == 4 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 3 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1){
-            std::cout<<"PYLON 4 3:22 "<<std::endl;   // 47 cap
+    }
 
-            if(TryBuildPylon()){ // 224s
-                std::cout<<"TRUE"<<std::endl;   // 47 cap
-            }
-        }
-        
-        //      32      3:48      Gateway
-        if(current_supply >= 33 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 4 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) == 0 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1){
+    //      32      3:48      Gateway
+    if(warpgate_count == 2 &&
+       gateway_count == 0 &&
+       base_count == 2 &&
+       robotics_facility_count == 1){
+        if(TryBuildGateway()){
             std::cout<<"GATEWAY 3 3:48"<<std::endl;
-
-            if(TryBuildGateway()){
-                std::cout<<"TRUE"<<std::endl;
-            }
         }
-        // ENEMY ATTACKS AROUND HERE
-        // BUILD ORDER TIMES ARE TOO LATE COMPARED TO ORIGINAL
+    }
+
+    if(warpgate_count <= 4 &&
+       gateway_count < 1 &&
+       base_count == 2 &&
+       stalkers_count <= 8 &&
+       robotics_facility_count == 1){
         
-        //      34      3:57      Observer (Chrono Boost)
-        if(current_supply >= 34 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 4 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 3 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1){
-            std::cout<<"OBSERVER 3:57"<<std::endl;
-            
-            Units rfacs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY));
-            for(const auto& rfac: rfacs){
-                if(CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 0 &&
-                   rfac->orders.empty()){
-                    Actions()->UnitCommand(rfac, ABILITY_ID::TRAIN_OBSERVER);
+        if(stalkers_count < 8){
+            for(const auto& warp : warpgates){
+                if(TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER)){
+                    std::cout<<"STALKER WARP 3:48"<<std::endl;
                 }
             }
-            
-        
         }
         
-        //      34      4:00      Robotics Bay
-        if(current_supply >= 34 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 4 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 3 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY) == 0 &&
-           CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 1){
-            std::cout<<"ROB BAY 4:00"<<std::endl;
-            if(TryBuildRoboticsBay()){
-                std::cout<<"TRUE"<<std::endl;
+        Units rfacs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY));
+        //      34      3:57      Observer (Chrono Boost)
+        if(CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 0){
+            if(rfacs.front()->orders.empty()){
+                Actions()->UnitCommand(rfacs.front(), ABILITY_ID::TRAIN_OBSERVER);
             }
-            
+        }
+        if(CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 1 && !rfacs.front()->orders.empty()){
+            Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
         }
         
+        Units stalker_army = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_STALKER));
+        Actions()->UnitCommand(stalker_army, ABILITY_ID::SMART);
+        float dist_1 = Distance3D(start_location, bases.front()->pos);
+        float dist_2 = Distance3D(start_location, (bases.front()+1)->pos);
+        
+        Point2D base_loc;
+        if(dist_1 > dist_2){
+            std::cout<<"dist_1"<<std::endl;
+            base_loc.x = (bases.front()+1)->pos.x;
+            base_loc.y = (bases.front()+1)->pos.y;
+            Actions()->UnitCommand(stalker_army, ABILITY_ID::GENERAL_MOVE, base_loc);
+        }
+        else{
+            std::cout<<"dist_2"<<std::endl;
+            base_loc.x = bases.front()->pos.x;
+            base_loc.y = bases.front()->pos.y;
+            Actions()->UnitCommand(stalker_army, ABILITY_ID::GENERAL_MOVE, base_loc);
+        }
+        
+    }
+    
+        
+//    //      34      4:00      Robotics Bay
+//    if(current_supply >= 34 &&
+//       CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 4 &&
+//       CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
+//       CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 3 &&
+//       CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1 &&
+//       CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY) == 0 &&
+//       CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 1){
+//        std::cout<<"ROB BAY 4:00"<<std::endl;
+//        if(TryBuildRoboticsBay()){
+//            std::cout<<"TRUE"<<std::endl;
+//        }
+//
+//    }
+
         
         
         
         
         // END BUILD ORDER
-    }
+//    }
         
         
     
