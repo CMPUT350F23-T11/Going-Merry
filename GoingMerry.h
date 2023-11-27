@@ -63,6 +63,8 @@ private:
 	bool TryBuildRoboticsBay();
 	bool TryBuildExpansionNexus();
     
+    bool TryBuildUnit(AbilityID ability_type_for_unit, UnitTypeID unit_type);
+    bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type);
     bool TryWarpInUnit(ABILITY_ID ability_type_for_unit);
 
 	void Mine(const Unit* unit,const Unit* nexus);

@@ -778,6 +778,39 @@ bool GoingMerry::TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type)
     return false;
 }
 
+bool GoingMerry::TryBuildUnit(AbilityID ability_type_for_unit, UnitTypeID unit_type) {
+    const ObservationInterface* observation = Observation();
+
+    //If we are at supply cap, don't build anymore units, unless its an overlord.
+    if (observation->GetFoodUsed() >= observation->GetFoodCap() && ability_type_for_unit != ABILITY_ID::TRAIN_OVERLORD) {
+        return false;
+    }
+    const Unit* unit = nullptr;
+    if (!GetRandomUnit(unit, observation, unit_type)) {
+        return false;
+    }
+    if (!unit->orders.empty()) {
+        return false;
+    }
+
+    if (unit->build_progress != 1) {
+        return false;
+    }
+
+    Actions()->UnitCommand(unit, ability_type_for_unit);
+    return true;
+}
+
+bool GoingMerry::GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type) {
+    Units my_units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
+    if (!my_units.empty()) {
+        unit_out = GetRandomEntry(my_units);
+        return true;
+    }
+    return false;
+}
+
+
 bool GoingMerry::TryWarpInUnit(ABILITY_ID ability_type_for_unit) {
     const ObservationInterface* observation = Observation();
     std::vector<PowerSource> power_sources = observation->GetPowerSources();
@@ -967,6 +1000,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
     Units warpgates = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_WARPGATE));
     Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    Units rfacs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY));
+    Units rbays = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSBAY));
     
     // UPGRADES
     const std::vector<UpgradeID> upgrades = observation->GetUpgrades();
@@ -1040,33 +1075,16 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        cybernetics_count > 0 &&
        warp_upgrade_complete == false){
         
-        bool gateways_done = true;
-        for(const auto& gateway : gateways){
-            if (gateway->build_progress < 1.0f){
-                gateways_done = false;
+        bool building_stalkers = false;
+        if(cores.front()->build_progress == 1.0f &&
+           current_supply <= (observation->GetFoodCap() - 3)){
+            if(TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY)){
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateways.front());
+                std::cout<<"STALKERS 2:02"<<std::endl;
             }
-        }
-        
-        if(gateways_done){
-            bool building_stalkers = false;
-            for(const auto& gateway: gateways){
-                
-                if(cores.front()->build_progress == 1.0f && // 128s : 2:08 +6late
-                   current_supply <= (observation->GetFoodCap() - 3) &&
-                   gateway->orders.empty()){
-                    std::cout<<"STALKERS 2:02"<<std::endl;
-                    Actions()->UnitCommand(gateway, ABILITY_ID::TRAIN_STALKER); // 128s, 131s
-                    Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateway);
-                    building_stalkers = true;
-                }
-            }
-            
-            if(building_stalkers == false){
-                Actions()->UnitCommand(cores.front(), ABILITY_ID::RESEARCH_WARPGATE);   // complete 3:48
+            else if(TryBuildUnit(ABILITY_ID::RESEARCH_WARPGATE, UNIT_TYPEID::PROTOSS_CYBERNETICSCORE)){
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, cores.front());
                 std::cout<<"RESEARCH WARPGATE 2:08"<<std::endl;
-                if(stalkers_count > 2){
-                    Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, cores.front());
-                }
             }
         }
     }
@@ -1203,11 +1221,13 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
                 MineIdleWorkers(worker, ABILITY_ID::HARVEST_GATHER_PROBE, UNIT_TYPEID:: PROTOSS_ASSIMILATOR);
             }
         }
-        Units rfacs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY));
-        if(rfacs.front()->orders.empty() && current_minerals >= 275 && current_gas >= 100){
-            Actions()->UnitCommand(rfacs.front(), ABILITY_ID::TRAIN_IMMORTAL);
-            Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
-            std::cout<<"IMMORTAL x2 4:27"<<std::endl;
+        
+        if(current_minerals >= 275 && current_gas >= 100){
+            if(TryBuildUnit(ABILITY_ID::TRAIN_IMMORTAL, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
+                std::cout<<"IMMORTAL x2 4:27"<<std::endl;
+            }
+            
         }
         
         if(TryBuildAssimilator()){
@@ -1227,11 +1247,12 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        assimilator_count == 4 &&
        immortals_count == 2 &&
        colossus_count < 1){
-        Units rfacs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY));
-        if(rfacs.front()->orders.empty() && current_minerals >= 300 && current_gas >= 200){
-            Actions()->UnitCommand(rfacs.front(), ABILITY_ID::TRAIN_COLOSSUS);
-            Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
-            std::cout<<"COLOSSUS 1 4:27"<<std::endl;
+        if(current_minerals >= 300 && current_gas >= 200){
+            if(TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
+                std::cout<<"COLOSSUS 1 4:27"<<std::endl;
+            }
+            
         }
     }
     
@@ -1246,6 +1267,11 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        assimilator_count == 4 &&
        immortals_count == 2 &&
        colossus_count == 1){
+        if(TryBuildUnit(ABILITY_ID::RESEARCH_EXTENDEDTHERMALLANCE, UNIT_TYPEID::PROTOSS_ROBOTICSBAY)){
+            std::cout<<"THERMAL LANCE 5:05"<<std::endl;
+
+        }
+        
         Units units = observation->GetUnits(Unit::Alliance::Self);
         Units army;
         for(const auto& unit : units){
