@@ -1040,10 +1040,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        warp_upgrade_complete == false){
         std::cout<<"STALKERS x4"<<std::endl;
         
-        if(pylon_count < 3){
-            TryBuildPylon();
-        }
-        
         bool gateways_done = true;
         for(const auto& gateway : gateways){
             if (gateway->build_progress < 1.0f){
@@ -1051,7 +1047,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             }
         }
         
-        if(gateways_done){
+        if(gateways_done && current_minerals >= 125){
             bool building_stalkers = false;
             for(const auto& gateway: gateways){
                 if(cores.front()->build_progress == 1.0f && // 128s : 2:08 +6late
@@ -1061,12 +1057,16 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
                     building_stalkers = true;
                     Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateway);
                 }
+                
+                 
             }
             
             if(building_stalkers == false){
                 Actions()->UnitCommand(cores.front(), ABILITY_ID::RESEARCH_WARPGATE);   // complete 3:48
                 std::cout<<"RESEARCH WARPGATE 2:08"<<std::endl;
-                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, cores.front());
+                if(stalkers_count > 2){
+                    Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, cores.front());
+                }
             }
         }
         
@@ -1120,7 +1120,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     if(warpgate_count <= 4 &&
        gateway_count < 1 &&
        base_count == 2 &&
-       stalkers_count <= 8 &&
+       stalkers_count <= 12 &&
        robotics_facility_count == 1){
         
         if(stalkers_count < 8){
@@ -1131,6 +1131,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             }
         }
         
+        // BUILD 1 OBSERVER
         Units rfacs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY));
         //      34      3:57      Observer (Chrono Boost)
         if(CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 0){
@@ -1138,35 +1139,44 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
                 Actions()->UnitCommand(rfacs.front(), ABILITY_ID::TRAIN_OBSERVER);
             }
         }
+        
+        // CHRONOBOOST IF BUILDING
         if(CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) == 1 && !rfacs.front()->orders.empty()){
             Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
         }
         
+        
+        // MOVE ARMY TO 2ND BASE
         Units stalker_army = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_STALKER));
         Actions()->UnitCommand(stalker_army, ABILITY_ID::SMART);
-        float dist_1 = Distance3D(start_location, bases.front()->pos);
-        float dist_2 = Distance3D(start_location, (bases.front()+1)->pos);
+        
+        
+        float dist_1 = Distance3D(start_location, bases.at(0)->pos);
+        float dist_2 = Distance3D(start_location, (bases.at(1))->pos);
         
         Point2D base_loc;
         if(dist_1 > dist_2){
-            std::cout<<"dist_1"<<std::endl;
-            base_loc.x = (bases.front()+1)->pos.x;
-            base_loc.y = (bases.front()+1)->pos.y;
-            Actions()->UnitCommand(stalker_army, ABILITY_ID::GENERAL_MOVE, base_loc);
+            base_loc.x = (bases.at(0))->pos.x;
+            base_loc.y = (bases.at(0))->pos.y;
         }
         else{
-            std::cout<<"dist_2"<<std::endl;
-            base_loc.x = bases.front()->pos.x;
-            base_loc.y = bases.front()->pos.y;
-            Actions()->UnitCommand(stalker_army, ABILITY_ID::GENERAL_MOVE, base_loc);
+            base_loc.x = bases.at(1)->pos.x;
+            base_loc.y = bases.at(1)->pos.y;
         }
+        
+        if(second_base[0].x == 0 && second_base[0].y == 0){
+            second_base[0] = base_loc;
+        }
+        else{
+            base_loc = second_base[0];
+        }
+        Actions()->UnitCommand(stalker_army, ABILITY_ID::ATTACK_ATTACK, base_loc);
         
     }
     
         
 //    //      34      4:00      Robotics Bay
-//    if(current_supply >= 34 &&
-//       CountUnitType(UNIT_TYPEID::PROTOSS_PYLON) == 4 &&
+//    if(
 //       CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) == 2 &&
 //       CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) == 3 &&
 //       CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) == 1 &&

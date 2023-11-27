@@ -76,6 +76,7 @@ private:
 	GameInfo game_info;
 	Point3D start_location;
 	Point3D staging_location;
+    std::array<Point2D, 1> second_base;
 	std::vector<Point3D> expansions;
 	int target_worker_count = 15;
 
