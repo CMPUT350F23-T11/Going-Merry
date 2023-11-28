@@ -52,6 +52,11 @@ void GoingMerry::OnStep()
         return;
     }
 
+    if (TryBuildProbe())
+    {
+        return;
+    }
+
     if (TryBuildArmy())
     {
         return;
@@ -68,39 +73,38 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
 {
     switch (unit->unit_type.ToType())
     {
-        case UNIT_TYPEID::PROTOSS_NEXUS:
-        {            
-            // Sometimes creates 1 or 2 extra workers when another worker is busy building something
-            Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-            for (const auto& base : bases){
-//                if (StillNeedingWorkers()){
-                if (base->assigned_harvesters <= base->ideal_harvesters && base->build_progress == 1.0){
-                    Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_PROBE);
-                }
-            }
-            break;
-        }
+//        case UNIT_TYPEID::PROTOSS_NEXUS:
+//        {            
+//            // Sometimes creates 1 or 2 extra workers when another worker is busy building something
+//            Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+//            for (const auto& base : bases){
+////                if (StillNeedingWorkers()){
+//                if (base->assigned_harvesters <= base->ideal_harvesters && base->build_progress == 1){
+//                    Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_PROBE);
+//                }
+//            }
+//            break;
+//        }
         case UNIT_TYPEID::PROTOSS_PROBE: {
 
             MineIdleWorkers(unit, ABILITY_ID::HARVEST_GATHER, UNIT_TYPEID:: PROTOSS_ASSIMILATOR);
             break;
         }
-        case UNIT_TYPEID::PROTOSS_GATEWAY:
+        case UNIT_TYPEID::PROTOSS_CYBERNETICSCORE:
         {
-            if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) > 0 && scouts.size() < 2)
+            const ObservationInterface* observation = Observation();
+            Units bases = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
+
+            if (!warpgate_reasearched)
             {
-                Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_ADEPT);
+                Actions()->UnitCommand(unit, ABILITY_ID::RESEARCH_WARPGATE);
+                OnUpgradeCompleted(UPGRADE_ID::WARPGATERESEARCH);
+
+                if (!bases.empty())
+                {
+                    Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_TIMEWARP, unit);
+                }
             }
-            else if (charge_researched)
-            {
-                Actions()->UnitCommand(unit, ABILITY_ID::TRAIN_ZEALOT);
-            }
-            break;
-        }
-        case UNIT_TYPEID::PROTOSS_ZEALOT:{
-            const GameInfo& game_info = Observation()->GetGameInfo();
-            Actions()->UnitCommand(unit, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
-            break;
         }
             
         default:
@@ -180,6 +184,36 @@ void GoingMerry::OnUpgradeCompleted(UpgradeID upgrade)
 //    }
 //    Actions()->UnitCommand(unit, ABILITY_ID::SMART, assimilator);
 //}
+
+
+bool GoingMerry::TryBuildProbe()
+{
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+
+    if (observation->GetFoodWorkers() >= ideal_worker_count)
+    {
+        return false;
+    }
+
+    if (observation->GetFoodUsed() >= observation->GetFoodCap())
+    {
+        return false;
+    }
+
+    for (const auto& base : bases)
+    {
+        if (base->assigned_harvesters < base->ideal_harvesters && base->build_progress == 1)
+        {
+            if (observation->GetMinerals() >= 50)
+            {
+                return TryBuildUnit(ABILITY_ID::TRAIN_PROBE, UNIT_TYPEID::PROTOSS_NEXUS);
+            }
+        }
+    }
+
+    return false;
+}
 
 
 // Mine the nearest mineral to Town hall.
@@ -712,39 +746,7 @@ bool GoingMerry::TryBuildCyberneticsCore()
     {
         return false;
     }    
-    //if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) > 0)
-    //{
-    //    return false;
-    //}
     return TryBuildStructure(ABILITY_ID::BUILD_CYBERNETICSCORE);
-}
-
-
-bool GoingMerry::TryBuildDarkShrine()
-{
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL) < 1)
-    {
-        return false;
-    }
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_DARKSHRINE) > 0)
-    {
-        return false;
-    }
-    return TryBuildStructure(ABILITY_ID::BUILD_DARKSHRINE);
-}
-
-
-bool GoingMerry::TryBuildFleetBeacon()
-{
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE) < 1)
-    {
-        return false;
-    }
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_FLEETBEACON) > 0)
-    {
-        return false;
-    }
-    return TryBuildStructure(ABILITY_ID::BUILD_FLEETBEACON);
 }
 
 
@@ -861,6 +863,7 @@ void GoingMerry::ManageUpgrades()
         TryBuildUnit(ABILITY_ID::RESEARCH_WARPGATE, UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
         OnUpgradeCompleted(UPGRADE_ID::WARPGATERESEARCH);
     }
+
     else
     {
         for (const auto& upgrade : upgrades)
@@ -1047,6 +1050,20 @@ void GoingMerry::SendScouting()
                 enemy_units.push_back(cur);
             }
         }
+        else
+        {
+            for (auto seen : enemy_bases)
+            {
+                if (seen->tag == cur->tag)
+                {
+                    found = true;
+                }
+            }
+            if (!found)
+            {
+                enemy_bases.push_back(cur);
+            }
+        }
     }
 }
 
@@ -1068,7 +1085,7 @@ void GoingMerry::SendHarassing(const sc2::Unit *base)
     }
 }
 
-void GoingMerry::RemoveMartyredScouts()
+void GoingMerry::CheckScoutsAlive()
 {
     for (auto it = scouts.begin(); it != scouts.end();) // check each scout to see if alive
     {
@@ -1088,7 +1105,7 @@ void GoingMerry::TrySendScouts()
     // checking if a base is already found -> send harassing if conditions are met
     if (scouts.size() > 0)
     {
-        RemoveMartyredScouts();
+        CheckScoutsAlive();
     }
     if (scouts.size() < 2)
     {
@@ -1129,6 +1146,9 @@ void GoingMerry::TrySendScouts()
         }
     }
 }
+
+
+#pragma endregion
 
 
 bool GoingMerry::GetRandomUnit(const Unit* &unit_out, const ObservationInterface* observation, UnitTypeID unit_type)
@@ -1218,7 +1238,7 @@ bool GoingMerry::TryBuildArmy()
     if (templar.size() > 1)
     {
         Units merge_templars;
-        
+
         for (int i = 0; i < 2; ++i)
         {
             merge_templars.push_back(templar.at(i));
@@ -1227,9 +1247,12 @@ bool GoingMerry::TryBuildArmy()
     }
 
     // Train observer units
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) < 1)
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) > 0)
     {
-        TryBuildUnit(ABILITY_ID::TRAIN_OBSERVER, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+        if (CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) < 1)
+        {
+            TryBuildUnit(ABILITY_ID::TRAIN_OBSERVER, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+        }
     }
 
     // If we already have a robotics bay but didn't reach max colossus count
@@ -1242,6 +1265,10 @@ bool GoingMerry::TryBuildArmy()
                 return true;
             }
         }
+        else if (CountUnitType(UNIT_TYPEID::PROTOSS_DISRUPTOR) < 2)
+        {
+            TryBuildUnit(ABILITY_ID::TRAIN_DISRUPTOR, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+        }
     }
     else
     {
@@ -1251,11 +1278,6 @@ bool GoingMerry::TryBuildArmy()
             if (TryBuildUnit(ABILITY_ID::TRAIN_IMMORTAL, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY))
             {
                 return true;
-            }
-
-            if (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) > max_stalker_count)
-            {
-
             }
         }
     }
@@ -1423,6 +1445,229 @@ void GoingMerry::BuildOrder()
     }
 }
 
+
+//Ignores Overlords, workers, and structures
+struct IsArmy {
+    IsArmy(const ObservationInterface* obs) : observation_(obs) {}
+
+    bool operator()(const Unit& unit) {
+        auto attributes = observation_->GetUnitTypeData().at(unit.unit_type).attributes;
+        for (const auto& attribute : attributes) {
+            if (attribute == Attribute::Structure) {
+                return false;
+            }
+        }
+        switch (unit.unit_type.ToType()) {
+        case UNIT_TYPEID::ZERG_OVERLORD: return false;
+        case UNIT_TYPEID::PROTOSS_PROBE: return false;
+        case UNIT_TYPEID::ZERG_DRONE: return false;
+        case UNIT_TYPEID::TERRAN_SCV: return false;
+        case UNIT_TYPEID::ZERG_QUEEN: return false;
+        case UNIT_TYPEID::ZERG_LARVA: return false;
+        case UNIT_TYPEID::ZERG_EGG: return false;
+        case UNIT_TYPEID::TERRAN_MULE: return false;
+        case UNIT_TYPEID::TERRAN_NUKE: return false;
+        default: return true;
+        }
+    }
+
+    const ObservationInterface* observation_;
+};
+
+
+void GoingMerry::AttackWithUnit(const Unit* unit, const ObservationInterface* observation) {
+    //If unit isn't doing anything make it attack.
+    Units enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
+    if (enemy_units.empty()) {
+        return;
+    }
+
+    if (unit->orders.empty()) {
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, enemy_units.front()->pos);
+        return;
+    }
+
+    //If the unit is doing something besides attacking, make it attack.
+    if (unit->orders.front().ability_id != ABILITY_ID::ATTACK) {
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, enemy_units.front()->pos);
+    }
+}
+
+
+void GoingMerry::ManageArmy()
+{
+    const ObservationInterface* observation = Observation();
+    Units enemy_units = observation->GetUnits(Unit::Alliance::Enemy);
+    Units army = observation->GetUnits(Unit::Alliance::Self, IsArmy(observation));
+    int wait_til_supply = 100;
+
+    //There are no enemies yet, and we don't have a big army
+    if (enemy_units.empty() && observation->GetFoodArmy() < wait_til_supply) {
+        return;
+    }
+
+    else if (!enemy_units.empty()){
+
+        for (const auto& unit : army) {
+            AttackWithUnit(unit, observation);
+
+            switch (unit->unit_type.ToType()) {
+
+                //Stalker blink micro, blinks back towards your base
+                case(UNIT_TYPEID::PROTOSS_OBSERVER): {
+                    Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, enemy_units.front()->pos);
+                    break;
+                }
+                case(UNIT_TYPEID::PROTOSS_STALKER): {
+                    if (blink_researched) {
+                        const Unit* old_unit = observation->GetUnit(unit->tag);
+                        const Unit* target_unit = observation->GetUnit(unit->engaged_target_tag);
+                        if (old_unit == nullptr) {
+                            break;
+                        }
+                        Point2D blink_location = start_location;
+                        if (old_unit->shield > 0 && unit->shield < 1) {
+                            if (!unit->orders.empty()) {
+                                if (target_unit != nullptr) {
+                                    Vector2D diff = unit->pos - target_unit->pos;
+                                    Normalize2D(diff);
+                                    blink_location = unit->pos + diff * 7.0f;
+                                }
+                                else {
+                                    Vector2D diff = unit->pos - start_location;
+                                    Normalize2D(diff);
+                                    blink_location = unit->pos - diff * 7.0f;
+                                }
+                                Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_BLINK, blink_location);
+                            }
+                        }
+                    }
+                    break;
+                }
+                //Turns on guardian shell when close to an enemy
+                case (UNIT_TYPEID::PROTOSS_SENTRY): {
+                    if (!unit->orders.empty()) {
+                        if (unit->orders.front().ability_id == ABILITY_ID::ATTACK) {
+                            float distance = std::numeric_limits<float>::max();
+                            for (const auto& u : enemy_units) {
+                                float d = Distance2D(u->pos, unit->pos);
+                                if (d < distance) {
+                                    distance = d;
+                                }
+                            }
+                            if (distance < 6 && unit->energy >= 75) {
+                                Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_GUARDIANSHIELD);
+                            }
+                        }
+                    }
+                    break;
+                }
+                //Turns on Damage boost when close to an enemy
+                case (UNIT_TYPEID::PROTOSS_VOIDRAY): {
+                    if (!unit->orders.empty()) {
+                        if (unit->orders.front().ability_id == ABILITY_ID::ATTACK) {
+                            float distance = std::numeric_limits<float>::max();
+                            for (const auto& u : enemy_units) {
+                                float d = Distance2D(u->pos, unit->pos);
+                                if (d < distance) {
+                                    distance = d;
+                                }
+                            }
+                            if (distance < 8) {
+                                Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_VOIDRAYPRISMATICALIGNMENT);
+                            }
+                        }
+                    }
+                    break;
+                }
+                //Turns on oracle weapon when close to an enemy
+                case (UNIT_TYPEID::PROTOSS_ORACLE): {
+                    if (!unit->orders.empty()) {
+                        float distance = std::numeric_limits<float>::max();
+                        for (const auto& u : enemy_units) {
+                            float d = Distance2D(u->pos, unit->pos);
+                            if (d < distance) {
+                                distance = d;
+                            }
+                        }
+                        if (distance < 6 && unit->energy >= 25) {
+                            Actions()->UnitCommand(unit, ABILITY_ID::BEHAVIOR_PULSARBEAMON);
+                        }
+                    }
+                    break;
+                }
+                //fires a disruptor nova when in range
+                case (UNIT_TYPEID::PROTOSS_DISRUPTOR): {
+                    float distance = std::numeric_limits<float>::max();
+                    Point2D closest_unit;
+                    for (const auto& u : enemy_units) {
+                        float d = Distance2D(u->pos, unit->pos);
+                        if (d < distance) {
+                            distance = d;
+                            closest_unit = u->pos;
+                        }
+                    }
+                    if (distance < 7) {
+                        Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_PURIFICATIONNOVA, closest_unit);
+                    }
+                    else {
+                        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, closest_unit);
+                    }
+                    break;
+                }
+                //controls disruptor novas.
+                case (UNIT_TYPEID::PROTOSS_DISRUPTORPHASED): {
+                    float distance = std::numeric_limits<float>::max();
+                    Point2D closest_unit;
+                    for (const auto& u : enemy_units) {
+                        if (u->is_flying) {
+                            continue;
+                        }
+                        float d = DistanceSquared2D(u->pos, unit->pos);
+                        if (d < distance) {
+                            distance = d;
+                            closest_unit = u->pos;
+                        }
+                    }
+                    Actions()->UnitCommand(unit, ABILITY_ID::MOVE_MOVE, closest_unit);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+    else {
+        for (const auto& unit : army) {
+            ScoutWithUnit(unit, observation);
+        }
+    }
+}
+
+struct IsAttackable {
+    bool operator()(const Unit& unit) {
+        switch (unit.unit_type.ToType()) {
+        case UNIT_TYPEID::ZERG_OVERLORD: return false;
+        case UNIT_TYPEID::ZERG_OVERSEER: return false;
+        case UNIT_TYPEID::PROTOSS_OBSERVER: return false;
+        default: return true;
+        }
+    }
+};
+
+void GoingMerry::ScoutWithUnit(const Unit* unit, const ObservationInterface* observation) {
+    Units enemy_units = observation->GetUnits(Unit::Alliance::Enemy, IsAttackable());
+
+    if (!unit->orders.empty()) {
+        return;
+    }
+
+    if (!enemy_units.empty())
+    {
+        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, enemy_units.front());
+        return;
+    }
+}
 
 
 

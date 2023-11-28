@@ -18,6 +18,8 @@ public:
 	void OnUnitIdle(const Unit* unit);
 	void OnUpgradeCompleted(UpgradeID upgrade);
 
+	int ideal_worker_count = 70;
+
 private:
 
 	const ObservationInterface* observation;
@@ -67,7 +69,7 @@ private:
 	void WorkerHub(const Unit* unit);
 
 	std::vector<const Unit *> enemy_units;
-	// std::vector<const Unit *> enemy_bases;
+	std::vector<const Unit *> enemy_bases;
 	std::vector<const Unit *> scouts;
 	std::vector<sc2::Point2D> visitedLocations;
 
@@ -86,7 +88,7 @@ private:
 	sc2::Point2D GetScoutMoveLocation();
 	void MoveScouts();
 	void SendHarassing(const sc2::Unit *base);
-	void RemoveMartyredScouts();
+	void CheckScoutsAlive();
 
 	bool TryBuildUnit(AbilityID ability_type, UnitTypeID unit_type);
 	bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type);
@@ -95,6 +97,10 @@ private:
 	bool TryWarpInUnit(ABILITY_ID ability_type);
 
 	size_t CountUnitType(UNIT_TYPEID unit_type);
+	void ManageArmy();
+	bool TryBuildProbe();
+	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation);
+	void ScoutWithUnit(const Unit* unit, const ObservationInterface* observation);
 };
 
 #endif
