@@ -19,6 +19,7 @@ public:
 	void OnUpgradeCompleted(UpgradeID upgrade);
 
 	int ideal_worker_count = 70;
+    std::vector<Point3D> expansions_;
 
 private:
 
@@ -28,12 +29,14 @@ private:
 	bool charge_researched = false;
 
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
-	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type, bool is_expansion = false);
+    //Try build structure given a location. This is used most of the time
+    bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type, bool is_expansion = false);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
     bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
+    bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
 	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
     
     void MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
@@ -63,6 +66,10 @@ private:
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
 	bool TryBuildExpansionNexus();
+    
+    bool TryBuildUnit(AbilityID ability_type_for_unit, UnitTypeID unit_type);
+    bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type);
+    bool TryWarpInUnit(ABILITY_ID ability_type_for_unit);
 
 	void Mine(const Unit* unit,const Unit* nexus);
 	void CollectVespeneGas(const Unit* unit, const Unit* assimilator);
@@ -76,12 +83,13 @@ private:
 	GameInfo game_info;
 	Point3D start_location;
 	Point3D staging_location;
+    std::array<Point2D, 1> second_base;
 	std::vector<Point3D> expansions;
 	int target_worker_count = 15;
 	int max_colossus_count = 5;
 	int max_stalker_count = 20;
 
-	void BuildOrder();
+	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);
 
 	void TrySendScouts();
 	void SendScouting();
