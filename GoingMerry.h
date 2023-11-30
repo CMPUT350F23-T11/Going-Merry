@@ -69,6 +69,7 @@ private:
 	//bool help(const Point2D& point);
 	bool IsNextToRamp(Point2D point);
 	bool HavePylonNearby(Point2D& point);
+	bool HaveCannonNearby(Point2D& point);
 	Point2D FindClostest(Point2D nux, vector<Point2D> position);
 	vector<Point2D> GetOffSetPoints(Point2D point, UNIT_TYPEID unit_type);
 

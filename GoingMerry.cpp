@@ -608,7 +608,6 @@ bool GoingMerry::HavePylonNearby(Point2D& point)
     {
         //if (observation->GetUnit(pylon.tag)->unit_type != UNIT_TYPEID::PROTOSS_PYLON)
         //    continue;
-        auto temp = pylon.radius;
         if (Distance2D(pylon.position, point) <= pylon.radius)
         {
             return true;
@@ -642,6 +641,25 @@ vector<Point2D> GoingMerry::GetOffSetPoints(Point2D point, UNIT_TYPEID unit_type
     }
     return offSetPoints;
 
+}
+
+bool GoingMerry::HaveCannonNearby(Point2D& point)
+{
+    Units cannons = observation->GetUnits(Unit::Alliance::Self,IsUnit(UNIT_TYPEID::PROTOSS_PHOTONCANNON));
+
+    if (cannons.size() == 0)
+        return false;
+
+    for (auto cannon : cannons)
+    {
+        //if (observation->GetUnit(pylon.tag)->unit_type != UNIT_TYPEID::PROTOSS_PYLON)
+        //    continue;
+        if (Distance2D(cannon->pos, point) <= 11)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 #pragma endregion
@@ -945,33 +963,46 @@ bool GoingMerry::TryBuildPhotonCannon()
         return false;
    /* auto position = CalculatePlacableRamp(*nux.begin());
     if (position.size() == 0)
-        return false;
-    for (auto pos : position)
-    {
-        if (HavePylonNearby(pos))
-        {
-            auto temp = TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos);
-            if (temp)
-            {
-                return true;
-            }
-            else
-            {
-                continue;
-            }
-        }
-        else
-        {
-            auto closet = FindClostest(*nux[0], position);
-            auto temp = TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
-            return temp;
-        }
-    }*/
+        return false;*/
+    //for (auto pos : position)
+    //{
+    //    if (HavePylonNearby(pos))
+    //    {
+    //        auto temp = TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos);
+    //        if (temp)
+    //        {
+    //            return true;
+    //        }
+    //        else
+    //        {
+    //            continue;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        auto closet = FindClostest(*nux[0], position);
+    //        auto temp = TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
+    //        return temp;
+    //    }
+    //}
 
-    bool flag = true;
-    vector<Point2D> grids = CalculateGrid(start_location, 18);
+
+    vector<Point2D> grids = CalculateGrid(start_location, 20);
     for (auto grid : grids)
     {
+        bool flag = false;
+        for (auto temp : game_info.enemy_start_locations)
+        {
+            if (Distance2D(grid, temp) >= Distance2D(start_location, temp))
+            {
+                flag = true;
+                break;
+            }
+        }
+        if (flag)
+            continue;
+        if (HaveCannonNearby(grid))
+            continue;
         if (observation->IsPlacable(grid) && IsNextToClif(grid))
         {
             vector<Point2D> points = GetOffSetPoints(grid, UNIT_TYPEID::PROTOSS_PHOTONCANNON);
@@ -980,21 +1011,26 @@ bool GoingMerry::TryBuildPhotonCannon()
             {
                 if (HavePylonNearby(point))
                 {
-                    if (!TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point))
+                    if (HaveCannonNearby(point))
                     {
-                        flag = false;
+                        continue;
                     }
+
+                    if (Query()->Placement(ABILITY_ID::BUILD_PHOTONCANNON, point))
+                    {
+                        return TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point);
+                    }
+
                 }
                 else
                 {
                     auto closet = FindClostest(start_location, points);
                     auto temp = TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
+                    return temp;
                 }
             }
         }
     }
-    if (!flag)
-        return true;
     return false;
 }
 
@@ -1002,6 +1038,7 @@ bool GoingMerry::TryBuildShieldBattery()
 {
     if (CountUnitType(UNIT_TYPEID::PROTOSS_PHOTONCANNON))
         return false;
+    return true;
 }
 
 bool GoingMerry::TryBuildStasisWard()
@@ -1245,7 +1282,7 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
 
 Point2D GoingMerry::FindNearestRampPoint(const Unit* centre)
 {
-    vector<Point2D> ramp = FindRamp(start_location,18);
+    vector<Point2D> ramp = FindRamp(start_location,20);
 
     if (ramp.size() == 0)
     {
