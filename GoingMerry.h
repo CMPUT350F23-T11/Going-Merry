@@ -13,6 +13,8 @@ using namespace sc2;
 
 class GoingMerry : public Agent {
 public:
+    int max_worker_count_ = 70;
+    
 	void OnGameStart();
 	void OnStep();
 	void OnUnitIdle(const Unit* unit);
@@ -34,7 +36,9 @@ private:
     bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
 	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
 
-    
+    bool TryBuildProbe();
+    //An estimate of how many workers we should have based on what buildings we have
+    int GetExpectedWorkers(UNIT_TYPEID vespene_building_type);
     void MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
     void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
     
@@ -78,11 +82,14 @@ private:
 	GameInfo game_info;
 	Point3D start_location;
 	Point3D staging_location;
-    std::array<Point2D, 1> second_base;
+    std::vector<Point2D> base_locations;
+    const Unit* scouting_probe = nullptr;
 	std::vector<Point3D> expansions;
 	int target_worker_count = 15;
 
 	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);
+    
+    
 
 	void TrySendScouts();
 	void SendScouting();
