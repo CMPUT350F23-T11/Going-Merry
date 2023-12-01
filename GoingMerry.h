@@ -8,6 +8,7 @@
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
 #include <ctime>
+#include <array>
 
 using namespace sc2;
 
@@ -86,8 +87,8 @@ private:
     std::array<Point2D, 1> second_base;
 	std::vector<Point3D> expansions;
 	int target_worker_count = 15;
-	int max_colossus_count = 5;
-	int max_stalker_count = 20;
+	int max_colossus_count = 10;
+	int max_stalker_count = 10;
 
 	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);
 
@@ -98,17 +99,15 @@ private:
 	void SendHarassing(const sc2::Unit *base);
 	void CheckScoutsAlive();
 
-	bool TryBuildUnit(AbilityID ability_type, UnitTypeID unit_type);
-	bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type);
 	void ManageUpgrades();
 	bool TryBuildArmy();
-	bool TryWarpInUnit(ABILITY_ID ability_type);
 
 	size_t CountUnitType(UNIT_TYPEID unit_type);
 	void ManageArmy();
 	bool TryBuildProbe();
-	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation);
-	void ScoutWithUnit(const Unit* unit, const ObservationInterface* observation);
+	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);
+	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // TODO
+	bool BuildAdaptiveUnit();
 };
 
 #endif
