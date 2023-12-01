@@ -78,6 +78,7 @@ private:
 	std::vector<const Unit *> enemy_units;
 	std::vector<const Unit *> enemy_bases;
 	std::vector<const Unit *> scouts;
+	std::vector<const Unit *> harassers;
 	std::vector<sc2::Point2D> visitedLocations;
 
 	GameInfo game_info;
@@ -96,7 +97,8 @@ private:
 	sc2::Point2D GetScoutMoveLocation();
 	void MoveScouts();
 	void SendHarassing(const sc2::Unit *base);
-	void CheckScoutsAlive();
+	void TrySendHarassing(const sc2::Unit *base);
+	void CheckIfAlive(int idetifier);
 
 	bool TryBuildUnit(AbilityID ability_type, UnitTypeID unit_type);
 	bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type);
