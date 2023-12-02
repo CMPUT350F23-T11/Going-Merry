@@ -1542,6 +1542,7 @@ void GoingMerry::TrySendHarassing(const sc2::Unit *base)
 
 void GoingMerry::SendHarassing(const sc2::Unit *base)
 {
+    cout << "sending harassers" << endl;
     // send to harass based on the enemy base location
     for (int i = 0; i < harassers.size(); i++)
     {
@@ -1565,6 +1566,7 @@ void GoingMerry::CheckIfAlive(int idetifier)
     if (idetifier == 0)
     {
         pair = scouts;
+        cout << "Removing scouts" << endl;
     }
     else
     {
@@ -1617,6 +1619,7 @@ void GoingMerry::TrySendScouts()
 
     if (scouts.size() == scout_size) // if a pair of scouts available send to harass or scout
     {
+        cout << "sending scouts" << endl;
         SendScouting();
     }
 }
@@ -1711,8 +1714,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     if ( gateway_count > 0 && zealot_count < min_zealot_count)
     {
-        printLog("Training Zealot!");
-        printLog(to_string(zealot_count));
+        // printLog("Training Zealot!");
+        // printLog(to_string(zealot_count));
         TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
     }
         
