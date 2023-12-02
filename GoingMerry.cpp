@@ -25,8 +25,6 @@ void printLog(string message, bool step = false)
 #pragma region Game Managers
 
 void GoingMerry::OnGameStart() { 
-    n_step = 0;
-    initial_build = true;
 
     observation = Observation();
     game_info = observation->GetGameInfo();
@@ -45,9 +43,9 @@ void GoingMerry::OnGameStart() {
 
 void GoingMerry::OnStep() 
 { 
-    //cout << "STEP: " << n_step << endl;
-    n_step += 1;
+
     const ObservationInterface* observation = Observation();
+
     // Get game info
     const GameInfo& game_info = observation->GetGameInfo();
     
@@ -55,17 +53,17 @@ void GoingMerry::OnStep()
     // Game loop increments by 1 for every 22.4 milliseconds of game time
     uint32_t current_game_loop = observation->GetGameLoop();
     float ingame_time = current_game_loop / 22.4f;
-    // Supply
+
+    // Supply info
     uint32_t current_supply = observation->GetFoodUsed();
     uint32_t supply_cap = observation->GetFoodCap();
-    // Mineral and Gas
+
+    // Mineral and Gas info
     uint32_t current_minerals = observation->GetMinerals();
     uint32_t current_gas = observation->GetVespene();
-    
-//    std::cout<<"Time: "<<ingame_time<<"s || Supply: "<<current_supply<<" / "<<supply_cap<<" || Minerals: "<<current_minerals<<" || Gas:"<<current_gas<<endl;;
-    
-    //____________________________________________________________________________________
-    //Throttle some behavior that can wait to avoid duplicate orders.
+        
+    // ____________________________________________________________________________________
+    // Throttle some behavior that can wait to avoid duplicate orders.
     int frames_to_skip = 4;
     if (current_supply >= observation->GetFoodCap()) {
         frames_to_skip = 6;
@@ -75,10 +73,8 @@ void GoingMerry::OnStep()
         return;
     }
     // ____________________________________________________________________________________
-
-    //TryBuildWarpGate();
     
-    // Should fix newly created idle workers
+    // Fix for newly created idle workers
     Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_PROBE));
     for(const auto& worker : workers){
         if(worker->orders.empty()){
@@ -88,7 +84,7 @@ void GoingMerry::OnStep()
 
     ManageArmy();
     
-    ManageWorkers(UNIT_TYPEID::PROTOSS_PROBE, ABILITY_ID::HARVEST_GATHER, UNIT_TYPEID::PROTOSS_ASSIMILATOR);
+    ManageWorkers(UNIT_TYPEID::PROTOSS_PROBE, ABILITY_ID::HARVEST_GATHER_PROBE, UNIT_TYPEID::PROTOSS_ASSIMILATOR);
     
     TrySendScouts();
 
@@ -101,15 +97,6 @@ void GoingMerry::OnStep()
         return;
     }
 
-    //if (TryBuildProbe()) {
-    //    return;
-    //}
-
-    //if (TryBuildPhotonCannon())
-    //{
-    //    return;
-    //}
-
     if (TryBuildArmy())
     {
         return;
@@ -118,28 +105,6 @@ void GoingMerry::OnStep()
     if (TryBuildProbe()) {
         return;
     }
-        
-     if (TryBuildPylon())
-     {
-         return;
-     }
-
-    // if (TryBuildExpansionNexus())
-    // {
-    //     return;
-    // }
-
-    // if (!initial_build)
-    // {
-    //    TryBuildWarpGate();
-
-    //    ManageUpgrades();
-
-    //    if (TryBuildAssimilator())
-    //    {
-    //       return;
-    //    }
-    // }
 }
 
 void GoingMerry::OnUnitIdle(const Unit* unit)
@@ -1455,8 +1420,6 @@ sc2::Point2D GoingMerry::GetScoutMoveLocation()
     return target_location;
 }
 
-
-
 void GoingMerry::MoveScouts()
 {
     Point2D target_location = GetScoutMoveLocation(); // get location to send scouts to 
@@ -1583,7 +1546,6 @@ void GoingMerry::CheckIfAlive(int idetifier)
     }
 }
 
-
 void GoingMerry::TrySendScouts()
 {    
     // checking if a base is already found -> send harassing if conditions are met
@@ -1631,8 +1593,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     
     //TODO: build cannons around bases 3 each?
     
-    //std::cout<<"---"<<std::endl;
-    
     // STRUCTURE/UNIT COUNTS
     size_t pylon_count = CountUnitType(UNIT_TYPEID::PROTOSS_PYLON);
     size_t gateway_count = CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY);
@@ -1645,8 +1605,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     size_t forge_count = CountUnitType(UNIT_TYPEID::PROTOSS_FORGE);
     size_t twilight_count = CountUnitType(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL);
     size_t cannon_count = CountUnitType(UNIT_TYPEID::PROTOSS_PHOTONCANNON);
-    
-    
     
     size_t observer_count = CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER);
     size_t zealot_count = CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT);
@@ -1663,8 +1621,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     Units rbays = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSBAY));
     Units forges = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_FORGE));
     Units twilights = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL));
-    
-
     
     // UPGRADES
     const std::vector<UpgradeID> upgrades = observation->GetUpgrades();
@@ -1711,8 +1667,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     if ( gateway_count > 0 && zealot_count < min_zealot_count)
     {
-        //printLog("Training Zealot!");
-        //printLog(to_string(zealot_count));
         TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
     }
         
@@ -1729,7 +1683,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        assimilator_count < 2){
         
         // send scout after building 1st gateway
-        // TODO: Send 1 probe to walk around enemy base to identify their buildings (ABEER)
         if(scouting_probe == nullptr){
             Units probes = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_PROBE));
             scouting_probe = probes.front();
@@ -1758,8 +1711,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             //std::cout<<"CYBERNETICS 1 1:28"<<std::endl;
         }
     }
-    
-
+   
     //      23      2:02      Stalkers x2 (Chrono Boost) (2:24 250 minerals)
     if(stalkers_count < 8 &&
        gateway_count == 2 &&
@@ -1821,8 +1773,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
     
-    // TODO: should move army to second base to defend here
-    
     //      34      4:00      Robotics Bay
     if(base_count == 2 &&
        cybernetics_count > 0 &&
@@ -1843,14 +1793,13 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_facility_count == 1 &&
        robotics_bay_count == 1 &&
        assimilator_count < 4){
-        
+  
         if(immortals_count < 2 && current_minerals >= 275 && current_gas >= 100){
             if(TryBuildUnit(ABILITY_ID::TRAIN_IMMORTAL, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
-                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, rfacs.front());
                 //std::cout<<"IMMORTAL x2 4:27"<<std::endl;
             }
         }
-        
         if(TryBuildAssimilator()){
             //std::cout<<"ASSIMILATOR x2 4:45"<<std::endl;
         }
@@ -1868,42 +1817,26 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        colossus_count < 1){
         if(current_minerals >= 300 && current_gas >= 200){
             if(TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
-                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, rfacs.front());
                 //std::cout<<"COLOSSUS 1 4:27"<<std::endl;
-            }
-            
+            } 
         }
     }
     
-    
     //      58      5:05      Extended Thermal Lance
-    
+    //      62      5:35      Nexus
     if(base_count == 2 &&
        cybernetics_count > 0 &&
        robotics_facility_count == 1 &&
        robotics_bay_count == 1){
-        
-        //      62      5:35      Nexus
+
+        if (TryBuildUnit(ABILITY_ID::RESEARCH_EXTENDEDTHERMALLANCE, UNIT_TYPEID::PROTOSS_ROBOTICSBAY))
+        {
+            //std::cout<<"RESEARCH THERMAL LANCE 5:05"<<std::endl;
+        }
         if(TryBuildExpansionNexus()){
             //std::cout<<"EXPAND 2 5:35"<<std::endl;
-        }
-        
-        
-//        Units units = observation->GetUnits(Unit::Alliance::Self);
-//        Units army;
-//        for(const auto& unit : units){
-//            if(unit->unit_type.ToType() == UNIT_TYPEID::PROTOSS_STALKER ||
-//               unit->unit_type.ToType() == UNIT_TYPEID::PROTOSS_IMMORTAL ||
-//               unit->unit_type.ToType() == UNIT_TYPEID::PROTOSS_COLOSSUS ||
-//               unit->unit_type.ToType() == UNIT_TYPEID::PROTOSS_ZEALOT){
-//                army.push_back(unit);
-//            }
-//        }
-//        if(!army.empty()){
-//            Actions()->UnitCommand(army, ABILITY_ID::SMART);
-////            Actions()->UnitCommand(army, ABILITY_ID::ATTACK_ATTACK, game_info.enemy_start_locations.front());
-//            Actions()->UnitCommand(army, ABILITY_ID::ATTACK_ATTACK, base_locations[1]);
-//        }
+        } 
     }
     
     //      64      5:53      Colossus (Chrono Boost)
@@ -1917,11 +1850,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        forge_count == 0){
         if(colossus_count == 1 && current_minerals >= 300 && current_gas >= 200){
             if(TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
-                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, rfacs.front());
                 //std::cout<<"COLOSSUS 2 5:53"<<std::endl;
             }
-        }
-        
+        }        
         if(TryBuildForge()){
             //std::cout<<"FORGE 6:02"<<std::endl;
         }        
@@ -1976,7 +1908,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
         
         //      99      7:24      Colossus (Chrono Boost)
-
         
         //      108      7:31      Charge
         if(!twilights.front()->orders.empty()){
@@ -2070,7 +2001,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         TryBuildAssimilator();
         TryBuildGateway();
     }
-     
         
     // END BUILD ORDER
 }
@@ -2493,6 +2423,7 @@ bool GoingMerry::BuildAdaptiveUnit(const Unit* reference_unit)
 {
     // TODO: Based on reference_unit and enemy army composition, issue build order
     //       for counter unit
+
     return false;
 }
 
