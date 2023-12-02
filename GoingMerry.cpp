@@ -6,6 +6,22 @@ using namespace sc2;
 using namespace std;
 
 
+#pragma region Debug Tools
+
+void printLog(string message, bool step = false)
+{
+    cout << "DEBUG LOG: " << message << endl;
+
+    if (step)
+    {
+        int temp;
+        cin >> temp;
+    }
+}
+
+#pragma endregion
+
+
 #pragma region Game Managers
 
 void GoingMerry::OnGameStart() { 
@@ -56,6 +72,11 @@ void GoingMerry::OnStep()
     }
     // ____________________________________________________________________________________
 
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < min_zealot_count)
+    {
+        printLog(to_string(CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT)));
+    }
+
     ManageArmy();
     
     ManageWorkers(UNIT_TYPEID::PROTOSS_PROBE, ABILITY_ID::HARVEST_GATHER, UNIT_TYPEID::PROTOSS_ASSIMILATOR);
@@ -69,23 +90,27 @@ void GoingMerry::OnStep()
         return;
     }
 
-    if (TryBuildProbe()) {
-        return;
-    }
+    //if (TryBuildProbe()) {
+    //    return;
+    //}
 
-    if (TryBuildPhotonCannon())
-    {
-        cout << "Building Photon Cannon" << endl;
-        return;
-    }
+    //if (TryBuildPhotonCannon())
+    //{
+    //    return;
+    //}
 
     if (TryBuildArmy())
     {
         return;
     }
 
-    //if (!initial_build)
-    //{
+    if (TryBuildExpansionNexus())
+    {
+        return;
+    }
+
+    if (!initial_build)
+    {
     //    //TryBuildWarpGate();
 
     //    //ManageUpgrades();
@@ -94,12 +119,7 @@ void GoingMerry::OnStep()
     //    //{
     //    //    return;
     //    //}
-
-    //    //if (TryBuildExpansionNexus())
-    //    //{
-    //    //    return;
-    //    //}
-    //}
+    }
 }
 
 void GoingMerry::OnUnitIdle(const Unit* unit)
@@ -1154,6 +1174,11 @@ bool GoingMerry::TryBuildPhotonCannon()
     if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) < 1)
        return false;
 
+    //if (CountUnitType(UNIT_TYPEID::PROTOSS_PHOTONCANNON) > 0)
+    //{
+    //    return false;
+    //}
+
     const Units nux = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
 
    /* auto position = CalculatePlacableRamp(*nux.begin());
@@ -1185,23 +1210,26 @@ bool GoingMerry::TryBuildPhotonCannon()
 
     for (auto grid : grids)
     {
-        bool flag = false;
-        for (auto temp : game_info.enemy_start_locations)
-        {
-            if (Distance2D(grid, temp) >= Distance2D(start_location, temp))
-            {
-                flag = true;
-                break;
-            }
-        }
-        if (flag)
-            continue;
+        //bool flag = false;
+        //for (auto temp : game_info.enemy_start_locations)
+        //{
+        //    if (Distance2D(grid, temp) >= Distance2D(start_location, temp))
+        //    {
+        //        flag = true;
+        //        break;
+        //    }
+        //}
+
+        //if (flag)
+        //    continue;
         if (HaveCannonNearby(grid))
+        {
             continue;
+        }
         if (observation->IsPlacable(grid) && IsNextToClif(grid))
         {
             vector<Point2D> points = GetOffSetPoints(grid, UNIT_TYPEID::PROTOSS_PHOTONCANNON);
-            cout << "Num points: " << points.size() << endl;
+            //cout << "Num points: " << points.size() << endl;
 
             for (auto point : points)
             {
@@ -1211,23 +1239,26 @@ bool GoingMerry::TryBuildPhotonCannon()
                     {
                         continue;
                     }
-
-                    if (Query()->Placement(ABILITY_ID::BUILD_PHOTONCANNON, point))
+                    if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point))
                     {
-                        cout << "Can be built" << endl;
-                        return TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point);
+                        return true;
+                        
                     }
-                    else
-                    {
-                        cout << "Cannot be built!!!!!!!!!!!!!" << endl;
-                    }
-
                 }
                 else
                 {
-                    auto closet = FindClostest(start_location, points);
-                    auto temp = TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
-                    return temp;
+                    auto closest = FindClostest(start_location, points);
+                    TryBuildStructure(ABILITY_ID::BUILD_PYLON, closest);
+
+                    if (HaveCannonNearby(point))
+                    {
+                        continue;
+                    }
+
+                    if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point))
+                    {
+                        return true;
+                    }
                 }
             }
         }
@@ -1521,6 +1552,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     size_t stalkers_count = CountUnitType(UNIT_TYPEID::PROTOSS_STALKER);
     size_t immortals_count = CountUnitType(UNIT_TYPEID::PROTOSS_IMMORTAL);
     size_t colossus_count = CountUnitType(UNIT_TYPEID::PROTOSS_COLOSSUS);
+    size_t forge_count = CountUnitType(UNIT_TYPEID::PROTOSS_FORGE);
     
     // UNITS
     Units cores = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE));
@@ -1529,6 +1561,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
     Units rfacs = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY));
     Units rbays = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSBAY));
+    
+
     
     // UPGRADES
     const std::vector<UpgradeID> upgrades = observation->GetUpgrades();
@@ -1828,6 +1862,15 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         //}
     }
 
+    if (cybernetics_count > 0 && forge_count < 1) {
+        TryBuildStructureNearPylon(ABILITY_ID::BUILD_FORGE, UNIT_TYPEID::PROTOSS_PROBE);
+    }
+
+    if (!initial_build && CountUnitType(UNIT_TYPEID::PROTOSS_PHOTONCANNON) < 4)
+    {
+        TryBuildPhotonCannon();
+    }
+
 // TODO
 // 
 //      61      5:22      Pylon
@@ -1943,6 +1986,19 @@ bool GoingMerry::TryBuildArmy()
     //        TryBuildUnit(ABILITY_ID::TRAIN_OBSERVER, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
     //    }
     //}
+
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) > 0 && CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < min_zealot_count)
+    {
+        printLog("TRAINING ZEALOT");
+        if (warpgate_reasearched)
+        {
+            TryWarpInUnit(ABILITY_ID::TRAIN_ZEALOT);
+        }
+        else
+        {
+            TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+        }
+    }
 
     // If we already have a robotics bay but didn't reach max colossus count
     if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY) > 0 && n_colossus < max_colossus_count)
