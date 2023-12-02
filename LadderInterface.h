@@ -139,37 +139,50 @@ static void ParseArguments(int argc, char *argv[], ConnectionOptions &connect_op
 
 static void RunBot(int argc, char *argv[], sc2::Agent *Agent, sc2::Race race)
 {
-	ConnectionOptions Options;
-	ParseArguments(argc, argv, Options);
+    ConnectionOptions Options;
+    ParseArguments(argc, argv, Options);
 
-	sc2::Coordinator coordinator;
+    sc2::Coordinator coordinator;
 
-	int num_agents;
-	if (Options.ComputerOpponent) {
-		num_agents = 1;
-		coordinator.SetParticipants({
-			CreateParticipant(race, Agent),
-			CreateComputer(Options.ComputerRace, Options.ComputerDifficulty)
-			});
-		coordinator.LoadSettings(1, argv);
-		coordinator.LaunchStarcraft();
-		coordinator.StartGame(Options.Map);
-	}
-	else {
-		num_agents = 2;
-		coordinator.SetParticipants({
-			CreateParticipant(race, Agent),
-			});
-		// Start the game.
-		std::cout << "Connecting to port " << Options.GamePort << std::endl;
-		coordinator.Connect(Options.GamePort);
-		coordinator.SetupPorts(num_agents, Options.StartPort, false);
-		// Step forward the game simulation.
-		coordinator.JoinGame();
-		std::cout << " Successfully joined game" << std::endl;
-	}
+    // const char* kReplayFolder = "C:/SC2/Replays/001.SC2Replay"; // For Windows
+	// const char* kReplayFolder = "~/Desktop/SC2/Replays/001.SC2Replay";  // For Mac
+    // coordinator.SaveReplayList(kReplayFolder);
 
-	coordinator.SetTimeoutMS(10000);
-	while (coordinator.Update()) {
-	}
+    // if (!coordinator.SetReplayPath(kReplayFolder))
+    // {
+    //     cout << "Unable to find replays." << endl;
+    //     return;
+    // }
+
+    // ReplayObserver replay_observer;
+    // coordinator.AddReplayObserver(&replay_observer);
+
+    int num_agents;
+    if (Options.ComputerOpponent) {
+        num_agents = 1;
+        coordinator.SetParticipants({
+            CreateParticipant(race, Agent),
+            CreateComputer(Options.ComputerRace, Options.ComputerDifficulty)
+            });
+        coordinator.LoadSettings(1, argv);
+        coordinator.LaunchStarcraft();
+        coordinator.StartGame(Options.Map);
+    }
+    else {
+        num_agents = 2;
+        coordinator.SetParticipants({
+            CreateParticipant(race, Agent),
+            });
+        // Start the game.
+        std::cout << "Connecting to port " << Options.GamePort << std::endl;
+        coordinator.Connect(Options.GamePort);
+        coordinator.SetupPorts(num_agents, Options.StartPort, false);
+        // Step forward the game simulation.
+        coordinator.JoinGame();
+        std::cout << " Successfully joined game" << std::endl;
+    }
+
+    coordinator.SetTimeoutMS(10000);
+    while (coordinator.Update()) {
+    }
 }
