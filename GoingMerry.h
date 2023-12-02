@@ -128,8 +128,8 @@ private:
 
 #pragma region strategy
     std::vector<const Unit*> enemy_units;
-    std::vector<const Unit*> enemy_bases;
     std::vector<const Unit*> scouts;
+	std::vector<const Unit*> harassers;
 	std::vector<sc2::Point2D> visitedLocations;
     std::vector<Point3D> expansions;
     std::vector<Point2D> base_locations;
@@ -145,7 +145,8 @@ private:
 	sc2::Point2D GetScoutMoveLocation();
 	void MoveScouts();
 	void SendHarassing(const sc2::Unit *base);
-	void CheckScoutsAlive();
+	void TrySendHarassing(const sc2::Unit *base);
+	void CheckIfAlive(int idetifier);
 
 #pragma endregion
 
