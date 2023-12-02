@@ -156,7 +156,7 @@ private:
 	vector<Point2D> FindRamp(Point3D centre, int range);
 	Point2D FindNearestRampPoint(const Unit* centre);
 	vector<Point2D> CalculatePlacableRamp(const Unit* centre);
-	bool IsNextToClif(const Point2D location);
+	bool IsNextToCliff(const Point2D location);
 
 #pragma endregion
 
@@ -166,9 +166,7 @@ private:
 	void ManageArmy();
 	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);
 	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // TODO
-	bool BuildAdaptiveUnit();
-
-	void BuildOrder();
+	bool BuildAdaptiveUnit(const Unit* reference_unit);
 };
 
 #endif

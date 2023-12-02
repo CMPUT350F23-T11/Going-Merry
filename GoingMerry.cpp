@@ -1173,7 +1173,6 @@ bool GoingMerry::TryWarpInUnit(ABILITY_ID ability_type_for_unit) {
 
 #pragma region Try Update Tech/Structures
 
-
 void GoingMerry::TryBuildWarpGate()
 {
     const ObservationInterface* observation = Observation();
@@ -1304,7 +1303,7 @@ bool GoingMerry::TryBuildPhotonCannon()
             continue;
         }
 
-        if (observation->IsPlacable(grid) && IsNextToClif(grid))
+        if (observation->IsPlacable(grid) && IsNextToCliff(grid))
         {
             vector<Point2D> points = GetOffSetPoints(grid, UNIT_TYPEID::PROTOSS_PHOTONCANNON);
             //cout << "Num points: " << points.size() << endl;
@@ -2475,6 +2474,13 @@ struct IsAttackable {
     }
 };
 
+bool GoingMerry::BuildAdaptiveUnit(const Unit* reference_unit)
+{
+    // TODO: Based on reference_unit and enemy army composition, issue build order
+    //       for counter unit
+    return false;
+}
+
 #pragma endregion
 
 
@@ -2619,7 +2625,7 @@ bool GoingMerry::IsNextToRamp(const Point2D point)
     return false;
 }
 
-bool GoingMerry::IsNextToClif(const Point2D point) {
+bool GoingMerry::IsNextToCliff(const Point2D point) {
 
     for (int i = 0; i < 8; i++)
     {
