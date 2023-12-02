@@ -73,10 +73,11 @@ void GoingMerry::OnStep()
         return;
     }
 
-    //if (TryBuildPhotonCannon())
-    //{
-    //    return;
-    //}
+    if (TryBuildPhotonCannon())
+    {
+        cout << "Building Photon Cannon" << endl;
+        return;
+    }
 
     if (TryBuildArmy())
     {
@@ -614,11 +615,9 @@ bool GoingMerry::TryBuildStructureNearPylon(AbilityID ability_type_for_structure
 
 #pragma region Assistant Functions
 
-
 size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
     return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
 }
-
 
 bool GoingMerry::StillNeedingWorkers()
 {
@@ -638,68 +637,6 @@ bool GoingMerry::StillNeedingWorkers()
         return true;
     return false;
 }
-
-//bool GoingMerry::AlreadyBuilt(const Unit* ref, const Units units)
-//{
-//    for (const auto& unit : units)
-//    {
-//        if (ref->pos == unit->pos)
-//            return true;
-//    }
-//    return false;
-//}
-//
-//const Unit* GoingMerry::FindNearestVespenes(const Point2D& start)
-//{
-//    const Units allGas = observation->GetUnits(Unit::Alliance::Neutral, IsVisibleGeyser());
-//    const Units built = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ASSIMILATOR));
-//    const Unit* target = nullptr;
-//    float minDis = 0;
-//
-//    for (const auto& gas : allGas)
-//    {
-//        if (AlreadyBuilt(gas, built))
-//        {
-//            continue;
-//        }
-//        float temp = DistanceSquared2D(gas->pos, start);
-//    }
-//}
-
-//bool GoingMerry::AlreadyBuilt(const Unit* ref, const Units units)
-//{
-//    for (const auto& unit : units)
-//    {
-//        if (ref->pos == unit->pos)
-//            return true;
-//    }
-//    return false;
-//}
-//
-//const Unit* GoingMerry::FindNearestVespenes(const Point2D& start)
-//{
-//    const Units allGas = observation->GetUnits(Unit::Alliance::Neutral, IsVisibleGeyser());
-//    const Units built = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ASSIMILATOR));
-//    const Unit* target = nullptr;
-//    float minDis = 0;
-//
-//    for (const auto& gas : allGas)
-//    {
-//        if (AlreadyBuilt(gas, built))
-//        {
-//            continue;
-//        }
-//        float temp = DistanceSquared2D(gas->pos, start);
-//
-//        if (temp < minDis || !target)
-//        {
-//            minDis = temp;
-//            target = gas;
-//        }
-//    }
-//    //cout << target->pos.x << " " << target->pos.y << endl;
-//    return target;
-//}
 
 const Unit* GoingMerry::FindNearestMineralPatch(const Point2D & start){
     Units units = Observation()->GetUnits(Unit::Alliance::Neutral);
@@ -1216,9 +1153,8 @@ bool GoingMerry::TryBuildPhotonCannon()
 {
     if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) < 1)
        return false;
+
     const Units nux = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
-    if (nux.size() == 0)
-        return false;
 
    /* auto position = CalculatePlacableRamp(*nux.begin());
     if (position.size() == 0)
@@ -1246,6 +1182,7 @@ bool GoingMerry::TryBuildPhotonCannon()
     //}
 
     vector<Point2D> grids = CalculateGrid(start_location, 20);
+
     for (auto grid : grids)
     {
         bool flag = false;
@@ -1264,6 +1201,7 @@ bool GoingMerry::TryBuildPhotonCannon()
         if (observation->IsPlacable(grid) && IsNextToClif(grid))
         {
             vector<Point2D> points = GetOffSetPoints(grid, UNIT_TYPEID::PROTOSS_PHOTONCANNON);
+            cout << "Num points: " << points.size() << endl;
 
             for (auto point : points)
             {
@@ -1276,7 +1214,12 @@ bool GoingMerry::TryBuildPhotonCannon()
 
                     if (Query()->Placement(ABILITY_ID::BUILD_PHOTONCANNON, point))
                     {
+                        cout << "Can be built" << endl;
                         return TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point);
+                    }
+                    else
+                    {
+                        cout << "Cannot be built!!!!!!!!!!!!!" << endl;
                     }
 
                 }
@@ -1294,7 +1237,7 @@ bool GoingMerry::TryBuildPhotonCannon()
 
 bool GoingMerry::TryBuildShieldBattery()
 {
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_PHOTONCANNON))
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_PHOTONCANNON) < 1)
         return false;
     return true;
 }
@@ -1578,7 +1521,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     size_t stalkers_count = CountUnitType(UNIT_TYPEID::PROTOSS_STALKER);
     size_t immortals_count = CountUnitType(UNIT_TYPEID::PROTOSS_IMMORTAL);
     size_t colossus_count = CountUnitType(UNIT_TYPEID::PROTOSS_COLOSSUS);
-    
     
     // UNITS
     Units cores = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE));
@@ -2130,7 +2072,7 @@ void GoingMerry::ManageArmy()
 
             if (army.size() > 10 && (num_colossus > 1 || num_immortals > 1))
             {
-                cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
+                //cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
                 AttackWithUnit(unit, observation, target_enemy->pos);
             }
             else
@@ -2267,7 +2209,7 @@ void GoingMerry::ManageArmy()
     else {
         for (const auto& unit : army) {
             if (find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
-                cout << "Skipping scouting unit" << endl;
+                //cout << "Skipping scouting unit" << endl;
                 continue;
             }
             else
@@ -2290,7 +2232,7 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
             float d = Distance2D(enemy->pos, base->pos);
             if (d < 10) {
                 AttackWithUnit(unit, observation, enemy->pos);
-                cout << "Defending base at (" << base->pos.x << "," << base->pos.y << ")" << endl;
+                //cout << "Defending base at (" << base->pos.x << "," << base->pos.y << ")" << endl;
             }
         }
     }
@@ -2331,8 +2273,8 @@ vector<Point2D> GoingMerry::CalculateGrid(Point2D centre, int range)
     }
     //cout << "1-3" << endl;
     //cout << res.size() << endl;
-    cout << res[0].x << " " << res[0].y << endl;
-    cout << res[res.size() - 1].x << " " << res[res.size() - 1].y << endl;
+    //cout << res[0].x << " " << res[0].y << endl;
+    //cout << res[res.size() - 1].x << " " << res[res.size() - 1].y << endl;
     return res;
 }
 
@@ -2342,7 +2284,7 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
     //cout << "2-1" << endl;
     vector<Point2D> ramp;
 
-    cout << "grid " << grid.size() << endl;
+    //cout << "grid " << grid.size() << endl;
     for (const auto point : grid)
     {
         //cout << point.x << " " << point.y << endl;
@@ -2352,11 +2294,11 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
         }
     }
 
-    cout << "ramp " << ramp.size() << endl;
+    //cout << "ramp " << ramp.size() << endl;
 
     if (ramp.size() == 0)
     {
-        cout << "2-0" << endl;
+        //cout << "2-0" << endl;
         return ramp;
     }
     
@@ -2409,7 +2351,7 @@ Point2D GoingMerry::FindNearestRampPoint(const Unit* centre)
         }
     }
     //cout << "3" << endl;
-    cout << closet.x << " " << closet.y << endl << endl;
+    //cout << closet.x << " " << closet.y << endl << endl;
 
     return closet;
 }
@@ -2420,7 +2362,7 @@ vector<Point2D> GoingMerry::CalculatePlacableRamp(const Unit* centre)
     auto clostest = FindNearestRampPoint(centre);
     if (clostest.x == -1 && clostest.y == -1)
     {
-        cout << 'NONE' << endl;
+        //cout << 'NONE' << endl;
         return wall;
     }
 
