@@ -1697,8 +1697,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     if ( gateway_count > 0 && zealot_count < min_zealot_count)
     {
-        printLog("Training Zealot!");
-        printLog(to_string(zealot_count));
+        //printLog("Training Zealot!");
+        //printLog(to_string(zealot_count));
         TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
     }
         
@@ -1723,7 +1723,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
         
         if(TryBuildAssimilator()){
-            std::cout<<"GAS x2 0:48"<<std::endl;
+            //std::cout<<"GAS x2 0:48"<<std::endl;
         }
     }
 
@@ -1782,7 +1782,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        base_count == 1){
         if(current_minerals >= 400){
             if(TryBuildExpansionNexus()){
-                std::cout<<"EXPAND 1 2:56"<<std::endl;
+                //std::cout<<"EXPAND 1 2:56"<<std::endl;
             }
         }
     }
@@ -1838,7 +1838,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
         
         if(TryBuildAssimilator()){
-            std::cout<<"ASSIMILATOR x2 4:45"<<std::endl;
+            //std::cout<<"ASSIMILATOR x2 4:45"<<std::endl;
         }
     }
    
@@ -1871,7 +1871,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         
         //      62      5:35      Nexus
         if(TryBuildExpansionNexus()){
-            std::cout<<"EXPAND 2 5:35"<<std::endl;
+            //std::cout<<"EXPAND 2 5:35"<<std::endl;
         }
         
         
@@ -1904,12 +1904,12 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         if(colossus_count == 1 && current_minerals >= 300 && current_gas >= 200){
             if(TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
                 Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
-                std::cout<<"COLOSSUS 2 5:53"<<std::endl;
+                //std::cout<<"COLOSSUS 2 5:53"<<std::endl;
             }
         }
         
         if(TryBuildForge()){
-            std::cout<<"FORGE 6:02"<<std::endl;
+            //std::cout<<"FORGE 6:02"<<std::endl;
         }        
     }
         
@@ -1921,7 +1921,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_bay_count == 1 &&
        forge_count == 1){
         if(TryBuildGateway()){
-            std::cout<<"GATEWAY 4 6:22"<<std::endl;
+            //std::cout<<"GATEWAY 4 6:22"<<std::endl;
         }
     }
         
@@ -1936,7 +1936,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        twilight_count == 0){
         
         if(TryBuildTwilightCouncil()){
-            std::cout<<"TWILIGHT 6:52"<<std::endl;
+            //std::cout<<"TWILIGHT 6:52"<<std::endl;
 
         }
     }
@@ -1953,11 +1953,11 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        cannon_count <= 10 &&
        !charge_researched){
         if(TryBuildAssimilator()){
-            std::cout<<"GAS 3rd BASE 7:14"<<std::endl;
+            //std::cout<<"GAS 3rd BASE 7:14"<<std::endl;
         }
         if(cannon_count < 10){
             if(TryBuildPhotonCannon()){
-                std::cout<<"CANNON x5 7:14"<<std::endl;
+                //std::cout<<"CANNON x5 7:14"<<std::endl;
             }
         }
         
@@ -1981,7 +1981,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        twilight_count == 1 &&
        cannon_count == 5){
         if(TryBuildGateway()){
-            std::cout<<"GATEWAY x3 7:48"<<std::endl;
+            //std::cout<<"GATEWAY x3 7:48"<<std::endl;
         }
     }
     
@@ -1994,7 +1994,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        twilight_count == 1 &&
        cannon_count == 5){
         if(TryBuildGateway()){
-            std::cout<<"GATEWAY x3 7:48"<<std::endl;
+            //std::cout<<"GATEWAY x3 7:48"<<std::endl;
         }
     }
     
@@ -2007,7 +2007,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        twilight_count == 1 &&
        cannon_count == 5){
         if(TryBuildGateway()){
-            std::cout<<"GATEWAY x3 7:48"<<std::endl;
+            //std::cout<<"GATEWAY x3 7:48"<<std::endl;
         }
     }
     
@@ -2019,7 +2019,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        twilight_count == 1 &&
        cannon_count < 10){
         if(TryBuildPhotonCannon()){
-            std::cout<<"MORE CANNONS x5 7:48"<<std::endl;
+            //std::cout<<"MORE CANNONS x5 7:48"<<std::endl;
         }
     }
     
@@ -2034,7 +2034,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        twilight_count == 1 &&
        ground_wep_2_researched){
         if(TryBuildExpansionNexus()){
-            std::cout<<"EXPAND 3 8:38"<<std::endl;
+            //std::cout<<"EXPAND 3 8:38"<<std::endl;
 
         }
     }
