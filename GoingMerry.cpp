@@ -1381,7 +1381,7 @@ Point2D GoingMerry::GetRandomMapLocation()
 #pragma endregion
 
 
-#pragma region Try Send Scouting
+#pragma region Try Send Scouting and Harassers
 
 sc2::Point2D GoingMerry::GetScoutMoveLocation() 
 {
@@ -1461,20 +1461,20 @@ sc2::Point2D GoingMerry::GetScoutMoveLocation()
 void GoingMerry::MoveScouts()
 {
     Point2D target_location = GetScoutMoveLocation(); // get location to send scouts to 
-
-    if (scouts[0]->orders.empty()) {
-        for (int i = 0; i < scouts.size(); ++i)
+    for (int i = 0; i < scouts.size(); i++)
+    {
+        if (scouts[i]->orders.empty())
         {
             Actions()->UnitCommand(scouts[i], ABILITY_ID::GENERAL_MOVE, target_location);
         }
-    }
-    else if (!scouts[0]->orders.empty()) {
-        if (scouts[0]->orders.front().ability_id != ABILITY_ID::GENERAL_MOVE) {
-            for (int i = 0; i < scouts.size(); ++i)
+        else if (!scouts[i]->orders.empty())
+        {
+            if (scouts[i]->orders.front().ability_id != ABILITY_ID::GENERAL_MOVE) 
             {
                 Actions()->UnitCommand(scouts[i], ABILITY_ID::GENERAL_MOVE, target_location);
             }
         }
+
     }
 }
 
@@ -1536,7 +1536,6 @@ void GoingMerry::TrySendHarassing(const sc2::Unit *base)
     
     if (harassers.size() == num_harassers) // if a pair of scouts available send to harass or scout
     {
-        cout << "Sending harrassers" << endl;
         SendHarassing(base);
     }
 }
