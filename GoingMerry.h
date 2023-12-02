@@ -128,7 +128,6 @@ private:
 
 #pragma region strategy
     std::vector<const Unit*> enemy_units;
-    std::vector<const Unit*> enemy_bases;
     std::vector<const Unit*> scouts;
 	std::vector<const Unit*> harassers;
 	std::vector<sc2::Point2D> visitedLocations;

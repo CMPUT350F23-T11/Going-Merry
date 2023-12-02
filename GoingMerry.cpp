@@ -1506,54 +1506,35 @@ void GoingMerry::SendScouting()
                 enemy_units.push_back(cur);
             }
         }
-        else
-        {
-            for (auto seen : enemy_bases)
-            {
-                if (seen->tag == cur->tag)
-                {
-                    found = true;
-                }
-            }
-            if (!found)
-            {
-                enemy_bases.push_back(cur);
-            }
-        }
     }
 }
 
 void GoingMerry::TrySendHarassing(const sc2::Unit *base)
 {    
+    int num_harassers = 4;
     cout << "Trying to send harrassers" << endl;
     // checking if a base is already found -> send harassing if conditions are met
     if (harassers.size() > 0)
     {
         CheckIfAlive(1);
     }
-    if (harassers.size() < 2)
+    if (harassers.size() < num_harassers)
     {
-        if (harassers.size() == 0) // if need to add 2 scouts
+        if (CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) >= (num_harassers - harassers.size()))
         {
-            if (CountUnitType(UNIT_TYPEID::PROTOSS_ADEPT) > 2)
+            const sc2::Units& zealots = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ZEALOT));
+            for (int i = 0; i < (num_harassers - harassers.size()); i++)
             {
-                const sc2::Units& adepts = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ADEPT));
-                harassers.push_back(adepts[0]);
-                harassers.push_back(adepts[1]);
+                harassers.push_back(zealots[i]);
             }
         }
-        else if (harassers.size() == 1) // if only need to add 1 scout
+        else
         {
-            if (CountUnitType(UNIT_TYPEID::PROTOSS_ADEPT) > 1)
-            {
-                const sc2::Units& adepts = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ADEPT));
-                harassers.push_back(adepts[0]);
-            }
+            return;
         }
-        return;
     }
     
-    if (harassers.size() == 2) // if a pair of scouts available send to harass or scout
+    if (harassers.size() == num_harassers) // if a pair of scouts available send to harass or scout
     {
         cout << "Sending harrassers" << endl;
         SendHarassing(base);
@@ -1563,17 +1544,18 @@ void GoingMerry::TrySendHarassing(const sc2::Unit *base)
 void GoingMerry::SendHarassing(const sc2::Unit *base)
 {
     // send to harass based on the enemy base location
-    if (harassers[0]->orders.empty()) 
+    for (int i = 0; i < harassers.size(); i++)
     {
-        Actions()->UnitCommand(scouts[0], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
-        Actions()->UnitCommand(scouts[1], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
-    }
-    else if (!harassers[0]->orders.empty()) 
-    {
-        if (harassers[0]->orders.front().ability_id != ABILITY_ID::ATTACK_ATTACKBARRAGE) 
+        if (harassers[i]->orders.empty()) 
         {
-            Actions()->UnitCommand(scouts[0], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
-            Actions()->UnitCommand(scouts[1], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
+            Actions()->UnitCommand(harassers[i], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
+        }
+        else if (!harassers[i]->orders.empty()) 
+        {
+            if (harassers[i]->orders.front().ability_id != ABILITY_ID::ATTACK_ATTACKBARRAGE) 
+            {
+                Actions()->UnitCommand(harassers[i], ABILITY_ID::ATTACK_ATTACKBARRAGE, base->pos);
+            }
         }
     }
 }
@@ -1606,47 +1588,37 @@ void GoingMerry::CheckIfAlive(int idetifier)
 void GoingMerry::TrySendScouts()
 {    
     // checking if a base is already found -> send harassing if conditions are met
+    int scout_size = 2;
     if (scouts.size() > 0)
     {
         CheckIfAlive(0);
     }
-    if (scouts.size() < 2)
+    if (scouts.size() < scout_size)
     {
-        if (scouts.size() == 0) // if need to add 2 scouts
+        if (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) >= (scout_size - scouts.size()))
         {
-            if (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) > 2)
+            const sc2::Units& stalkers = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_STALKER));
+            for (int i = 0; i < (scout_size - scouts.size()); i++)
             {
-                const sc2::Units& stalkers = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_STALKER));
-                scouts.push_back(stalkers[0]);
-                scouts.push_back(stalkers[1]);
-            }
-        }
-        else if (scouts.size() == 1) // if only need to add 1 scout
-        {
-            if (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) > 1)
-            {
-                const sc2::Units& stalkers = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_STALKER));
-                scouts.push_back(stalkers[0]);
-            }
-        }
-        return;
-    }
-    
-    if (scouts.size() == 2) // if a pair of scouts available send to harass or scout
-    {
-        const sc2::Units& enemy_bases = Observation()->GetUnits(Unit::Alliance::Enemy, IsUnit(UNIT_TYPEID::ZERG_HATCHERY));
-        if (enemy_bases.size() > 0) // only send harass if an enemy base is found
-        {
-            for (auto base : enemy_bases)
-            {
-                SendHarassing(base);
-                break;
+                scouts.push_back(stalkers[i]);
             }
         }
         else
         {
-            SendScouting();
+            return;
         }
+    }
+    
+    sc2::Units enemy_bases = Observation()->GetUnits(Unit::Alliance::Enemy, IsTownHall());
+    if (enemy_bases.size() > 0) // only send harass if an enemy base is found
+    {
+        const sc2::Unit *&base = sc2::GetRandomEntry(enemy_bases);;
+        TrySendHarassing(base);
+    }
+
+    if (scouts.size() == scout_size) // if a pair of scouts available send to harass or scout
+    {
+        SendScouting();
     }
 }
 
