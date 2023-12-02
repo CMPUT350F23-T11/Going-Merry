@@ -1254,58 +1254,56 @@ bool GoingMerry::TryBuildPhotonCannon()
     if (CountUnitType(UNIT_TYPEID::PROTOSS_FORGE) < 1)
        return false;
 
-    //if (CountUnitType(UNIT_TYPEID::PROTOSS_PHOTONCANNON) > 0)
-    //{
-    //    return false;
-    //}
+    Units nux = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
 
-    const Units nux = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
-
-   /* auto position = CalculatePlacableRamp(*nux.begin());
+    auto position = CalculatePlacableRamp(nux.front());
     if (position.size() == 0)
-        return false;*/
-    //for (auto pos : position)
-    //{
-    //    if (HavePylonNearby(pos))
-    //    {
-    //        auto temp = TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos);
-    //        if (temp)
-    //        {
-    //            return true;
-    //        }
-    //        else
-    //        {
-    //            continue;
-    //        }
-    //    }
-    //    else
-    //    {
-    //        auto closet = FindClostest(*nux[0], position);
-    //        auto temp = TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
-    //        return temp;
-    //    }
-    //}
+        return false;
+
+    for (auto pos : position)
+    {
+        if (HavePylonNearby(pos))
+        {
+            auto temp = TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos);
+            if (temp)
+            {
+                return true;
+            }
+            else
+            {
+                continue;
+            }
+        }
+        else
+        {
+            auto closet = FindClostest(nux.front()->pos, position);
+            auto temp = TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
+            return temp;
+        }
+    }
 
     vector<Point2D> grids = CalculateGrid(start_location, 20);
 
     for (auto grid : grids)
     {
-        //bool flag = false;
-        //for (auto temp : game_info.enemy_start_locations)
-        //{
-        //    if (Distance2D(grid, temp) >= Distance2D(start_location, temp))
-        //    {
-        //        flag = true;
-        //        break;
-        //    }
-        //}
+        bool flag = false;
+        for (auto temp : game_info.enemy_start_locations)
+        {
+            if (Distance2D(grid, temp) >= Distance2D(start_location, temp))
+            {
+                flag = true;
+                break;
+            }
+        }
 
-        //if (flag)
-        //    continue;
+        if (flag)
+            continue;
+
         if (HaveCannonNearby(grid))
         {
             continue;
         }
+
         if (observation->IsPlacable(grid) && IsNextToClif(grid))
         {
             vector<Point2D> points = GetOffSetPoints(grid, UNIT_TYPEID::PROTOSS_PHOTONCANNON);
@@ -1619,7 +1617,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     
     //TODO: build cannons around bases 3 each?
     
-    std::cout<<"---"<<std::endl;
+    //std::cout<<"---"<<std::endl;
     
     // STRUCTURE/UNIT COUNTS
     size_t pylon_count = CountUnitType(UNIT_TYPEID::PROTOSS_PYLON);
@@ -1641,7 +1639,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     size_t stalkers_count = CountUnitType(UNIT_TYPEID::PROTOSS_STALKER);
     size_t immortals_count = CountUnitType(UNIT_TYPEID::PROTOSS_IMMORTAL);
     size_t colossus_count = CountUnitType(UNIT_TYPEID::PROTOSS_COLOSSUS);
-    size_t forge_count = CountUnitType(UNIT_TYPEID::PROTOSS_FORGE);
     
     // UNITS
     Units cores = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE));
@@ -1697,6 +1694,13 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         // TODO: build at chokepoint (TONY)
         
     }
+
+    if ( gateway_count > 0 && zealot_count < min_zealot_count)
+    {
+        printLog("Training Zealot!");
+        printLog(to_string(zealot_count));
+        TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+    }
         
     //      16      0:48      Assimilator
     //      17      0:58      Assimilator
@@ -1746,14 +1750,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     if(stalkers_count < 8 &&
        gateway_count == 2 &&
        cybernetics_count > 0 &&
-       warp_upgrade_complete == false){
-
-        //cout << "===================================BLOCK RUNS===================================" << endl;
-        //cout << "GATEWAY_COUNT " << gateway_count << endl;
-        //cout << "CYBERNETICS_COUNT " << cybernetics_count << endl;
-        //cout << "WARP_UPGRADE " << warp_upgrade_complete << endl;
-        //cout << "STALKER_COUNT " << stalkers_count << endl;
-        
+       warp_upgrade_complete == false){   
         bool building_stalkers = false;
         if(cores.front()->build_progress == 1.0f &&
            current_supply <= (observation->GetFoodCap() - 3)){
@@ -1767,13 +1764,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             }
         }
     }
-    else if (gateway_count == 2 && cybernetics_count > 0)
-    {
-        //cout << "===================================BLOCK DOES NOT RUN===================================" << endl;
-        //cout << "WARP_UPGRADE " << warp_upgrade_complete << endl;
-        //cout << "STALKER_COUNT " << stalkers_count << endl;
-    }
-    
+
     //      27      2:08      Warp Gate Research
     if(gateway_count == 2 &&
        cybernetics_count > 0 &&
@@ -1839,12 +1830,12 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_bay_count == 1 &&
        assimilator_count < 4){
         
-//        if(immortals_count < 2 && current_minerals >= 275 && current_gas >= 100){
-//            if(TryBuildUnit(ABILITY_ID::TRAIN_IMMORTAL, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
-//                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
-//                std::cout<<"IMMORTAL x2 4:27"<<std::endl;
-//            }
-//        }
+        if(immortals_count < 2 && current_minerals >= 275 && current_gas >= 100){
+            if(TryBuildUnit(ABILITY_ID::TRAIN_IMMORTAL, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
+                //std::cout<<"IMMORTAL x2 4:27"<<std::endl;
+            }
+        }
         
         if(TryBuildAssimilator()){
             std::cout<<"ASSIMILATOR x2 4:45"<<std::endl;
@@ -1910,12 +1901,12 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_bay_count == 1 &&
        assimilator_count == 4 &&
        forge_count == 0){
-//        if(colossus_count == 1 && current_minerals >= 300 && current_gas >= 200){
-//            if(TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
-//                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
-//                std::cout<<"COLOSSUS 2 5:53"<<std::endl;
-//            }
-//        }
+        if(colossus_count == 1 && current_minerals >= 300 && current_gas >= 200){
+            if(TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
+                std::cout<<"COLOSSUS 2 5:53"<<std::endl;
+            }
+        }
         
         if(TryBuildForge()){
             std::cout<<"FORGE 6:02"<<std::endl;
@@ -2160,18 +2151,22 @@ bool GoingMerry::TryBuildArmy()
     //    }
     //}
 
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) > 0 && CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < min_zealot_count)
-    {
-        printLog("TRAINING ZEALOT");
-        if (warpgate_reasearched)
-        {
-            TryWarpInUnit(ABILITY_ID::TRAIN_ZEALOT);
-        }
-        else
-        {
-            TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
-        }
-    }
+    //if (CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY) > 0 && CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < min_zealot_count)
+    //{
+
+    //    if (CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) == 3)
+    //    {
+    //        printLog("TRAINING ZEALOT WHEN COUNT 3");
+    //    }
+    //    if (warpgate_reasearched)
+    //    {
+    //        TryWarpInUnit(ABILITY_ID::TRAIN_ZEALOT);
+    //    }
+    //    else
+    //    {
+    //        TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+    //    }
+    //}
 
     // If we already have a robotics bay but didn't reach max colossus count
     if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY) > 0 && n_colossus < max_colossus_count)
@@ -2299,7 +2294,7 @@ void GoingMerry::ManageArmy()
                 continue;
             }
 
-            if (army.size() > 10 && (num_colossus > 1 || num_immortals > 1))
+            if (army.size() > 10 && (num_colossus > 1 || num_immortals > 2))
             {
                 //cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
                 AttackWithUnit(unit, observation, target_enemy->pos);
