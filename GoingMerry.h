@@ -33,11 +33,7 @@ private:
 	bool blink_researched = false;
 	bool charge_researched = false;
 
-	std::vector<Point3D> expansions;
-	std::vector<const Unit*> enemy_units;
-	std::vector<const Unit*> enemy_bases;
-	std::vector<const Unit*> scouts;
-
+		
 	vector<int> directionX{ 1,-1,0,0,1,1,-1,-1 };
 	vector<int> directionY{ 0,0,1,-1,1,-1,1,-1 };
 
@@ -45,16 +41,17 @@ private:
 
 	Point3D start_location;
 	Point3D staging_location;
+	int n_step;
+	bool initial_build;
 	
-	int target_worker_count = 15;
-
 #pragma endregion
 
 #pragma region basic building function
 
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
-	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type, bool is_expansion);
-	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type, bool is_expansion);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type, bool is_expansion = false);
+	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type, bool is_expansion = false);
+	bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool is_expansion = false);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
 	//bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
@@ -127,9 +124,6 @@ private:
 	std::vector<const Unit *> scouts;
 	std::vector<sc2::Point2D> visitedLocations;
 
-	GameInfo game_info;
-	Point3D start_location;
-	Point3D staging_location;
     std::array<Point2D, 1> second_base;
 	std::vector<Point3D> expansions;
 	int target_worker_count = 15;
@@ -159,12 +153,13 @@ private:
 	void ManageUpgrades();
 	bool TryBuildArmy();
 
-	size_t CountUnitType(UNIT_TYPEID unit_type);
 	void ManageArmy();
 	bool TryBuildProbe();
 	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);
 	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // TODO
 	bool BuildAdaptiveUnit();
+
+	void BuildOrder();
 };
 
 #endif
