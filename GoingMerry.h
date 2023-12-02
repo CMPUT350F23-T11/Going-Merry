@@ -138,6 +138,7 @@ private:
     int target_worker_count = 15;
 	int max_colossus_count = 10;
 	int max_stalker_count = 10;
+	int min_zealot_count = 4;
 	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);
     
 	void TrySendScouts();
