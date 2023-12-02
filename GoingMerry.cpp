@@ -2224,6 +2224,7 @@ void GoingMerry::ManageArmy()
             if (find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
                 continue;
             }
+
             Actions()->UnitCommand(unit, ABILITY_ID::GENERAL_PATROL, staging_location);
         }
     }
@@ -2256,7 +2257,9 @@ void GoingMerry::ManageArmy()
                     if(!enemy_units.empty()){
                         Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, enemy_units.front()->pos);
                         break;
-                    }}
+                    }
+                    break;
+                }
                 case(UNIT_TYPEID::PROTOSS_STALKER): {
                     if (blink_researched) {
                         const Unit* old_unit = observation->GetUnit(unit->tag);
@@ -2401,8 +2404,8 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
         {
             float d = Distance2D(enemy->pos, base->pos);
             if (d < 10) {
-                AttackWithUnit(unit, observation, enemy->pos);
                 //cout << "Defending base at (" << base->pos.x << "," << base->pos.y << ")" << endl;
+                AttackWithUnit(unit, observation, enemy->pos);
             }
         }
     }
