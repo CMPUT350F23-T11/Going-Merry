@@ -63,7 +63,7 @@ private:
     bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
     
     //Try build structure given a location. This is used most of the time
-    bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion);
+    bool TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion);
     bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
     
 	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
@@ -127,10 +127,11 @@ private:
 #pragma endregion
 
 #pragma region strategy
-
-
+    std::vector<const Unit*> enemy_units;
+    std::vector<const Unit*> enemy_bases;
+    std::vector<const Unit*> scouts;
 	std::vector<sc2::Point2D> visitedLocations;
-
+    std::vector<Point3D> expansions;
     std::vector<Point2D> base_locations;
     const Unit* scouting_probe = nullptr;
     int target_worker_count = 15;

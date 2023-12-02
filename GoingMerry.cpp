@@ -46,7 +46,7 @@ void GoingMerry::OnStep()
     uint32_t current_minerals = observation->GetMinerals();
     uint32_t current_gas = observation->GetVespene();
     
-    //std::cout<<"Time: "<<ingame_time<<"s || Supply: "<<current_supply<<" / "<<supply_cap<<" || Minerals: "<<current_minerals<<" || Gas:"<<current_gas<<endl;;
+//    std::cout<<"Time: "<<ingame_time<<"s || Supply: "<<current_supply<<" / "<<supply_cap<<" || Minerals: "<<current_minerals<<" || Gas:"<<current_gas<<endl;;
     
     //____________________________________________________________________________________
     //Throttle some behavior that can wait to avoid duplicate orders.
@@ -633,7 +633,7 @@ bool GoingMerry::TryBuildStructure(AbilityID ability_type_for_structure, UnitTyp
 
 //Try build structure given a location. This is used most of the time
 // Used by TryBuildStructureNearPylon
-bool GoingMerry::TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false) {
+bool GoingMerry::TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false) {
 
     const ObservationInterface* observation = Observation();
     Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
@@ -697,7 +697,7 @@ bool GoingMerry::TryBuildStructureNearPylon(AbilityID ability_type_for_structure
     float rx = GetRandomScalar();
     float ry = GetRandomScalar();
     Point2D build_location = Point2D(random_power_source.position.x + rx * radius, random_power_source.position.y + ry * radius);
-    return TryBuildStructure(ability_type_for_structure, UNIT_TYPEID::PROTOSS_PROBE, build_location);
+    return TryBuildStructureForPylon(ability_type_for_structure, UNIT_TYPEID::PROTOSS_PROBE, build_location);
 }
 
 #pragma endregion
@@ -707,25 +707,6 @@ bool GoingMerry::TryBuildStructureNearPylon(AbilityID ability_type_for_structure
 
 size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
     return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
-}
-
-bool GoingMerry::StillNeedingWorkers()
-{
-    int res = 0;
-    auto probeNumbers = CountUnitType(UNIT_TYPEID::PROTOSS_PROBE);
-    const Units allNexus = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
-    const Units allAssimilator = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ASSIMILATOR));
-    for (const auto& nexus : allNexus)
-    {
-        res += nexus->ideal_harvesters;
-    }
-    for (const auto& assimilator : allAssimilator)
-    {
-        res += assimilator->ideal_harvesters;
-    }
-    if (probeNumbers < res)
-        return true;
-    return false;
 }
 
 const Unit* GoingMerry::FindNearestMineralPatch(const Point2D & start){
@@ -1901,37 +1882,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             std::cout<<"FORGE 6:02"<<std::endl;
         }
         
-//        // Build zealots to defend 3rd base
-//        TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
-//        
-//        Units zealots = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ZEALOT));
-//        if(bases.size() == 3 && base_locations.size() == 2){
-//            // go through each base
-//            for(int i = 0 ; i < 3; ++i){
-//                Point2D base(bases.at(i)->pos.x, bases.at(i)->pos.y);
-//                bool found = false;
-//                
-//                // find base in saved base locations
-//                for(int j = 0; j < base_locations.size(); ++j){
-//                    if(base == base_locations[j]){
-//                        found = true;
-//                        break;
-//                    }
-//                }
-//                
-//                // if not found, push back into base_locations
-//                if(!found){
-//                    base_locations.push_back(base);
-//                }
-//            }
-//        }
-//        
-//        // Go to 3rd base (goes to enemy base by OnUnitIdle
-//        if(!zealots.empty() && base_locations.size() == 3){
-//            Actions()->UnitCommand(zealots, ABILITY_ID::SMART);
-//            Actions()->UnitCommand(zealots, ABILITY_ID::ATTACK_ATTACK, base_locations[2]);
-//        }
-        
     }
         
     //      78      6:22      Gateway
@@ -1955,20 +1905,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_bay_count == 1 &&
        forge_count == 1 &&
        twilight_count == 0){
-        
-//        if(forges.front()->build_progress == 1.0){
-//            if(TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSGROUNDWEAPONSLEVEL1, UNIT_TYPEID::PROTOSS_FORGE)){
-//                std::cout<<"RESEARCH GROUND WEAPONS 1 6:30"<<std::endl;
-//            }
-//        }
-//        
-//        //      78      6:36      Colossus (Chrono Boost)
-//        if(colossus_count < 3){
-//            if(TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
-//                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
-//                std::cout<<"COLOSSUS 3 6:36"<<std::endl;
-//            }
-//        }
         
         if(TryBuildTwilightCouncil()){
             std::cout<<"TWILIGHT 6:52"<<std::endl;
@@ -1997,15 +1933,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             }
         }
         
-//        //      99      7:24      Colossus (Chrono Boost)
-//        if(colossus_count < 4){
-//            if(TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)){
-//                if(!rfacs.front()->orders.empty()){
-//                    Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, rfacs.front());
-//                }
-//                std::cout<<"COLOSSUS 4 7:24"<<std::endl;
-//            }
-//        }
+        //      99      7:24      Colossus (Chrono Boost)
+
         
         //      108      7:31      Charge
         if(!twilights.front()->orders.empty()){
