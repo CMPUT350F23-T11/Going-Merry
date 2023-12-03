@@ -46,6 +46,8 @@ private:
 	std::vector<Point2D> base_locations;
 
 	const Unit* scouting_probe = nullptr;
+	int num_scouts = 2;
+	int num_harassers = 4;
 	int target_worker_count = 15;
 	int max_colossus_count = 10;
 	int max_stalker_count = 10;
@@ -114,7 +116,7 @@ private:
 	bool TryBuildStargate();
 	bool TryBuildTemplarArchives();
 	bool TryBuildTwilightCouncil();
-	void TryBuildWarpGate();
+	bool TryBuildWarpGate();
 	bool TryBuildShieldBattery();
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
