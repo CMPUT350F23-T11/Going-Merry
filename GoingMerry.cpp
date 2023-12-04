@@ -153,6 +153,12 @@ void GoingMerry::OnStep()
     {
         return;
     }
+    
+    if (TryBuildAssimilator())
+    {
+        return;
+    }
+
 
     if (TryBuildProbe()) {
         return;
@@ -1850,6 +1856,16 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             //std::cout<<"GATEWAY 1 0:40"<<std::endl;
         }
     }
+    
+    if ((gateway_count > 0 || warpgate_count > 0) && CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < 10){
+        if(gateway_count > 0){
+            TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+        }
+        else{
+            TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+        }
+        
+    }
 
     //      16      0:48      Assimilator
     //      17      0:58      Assimilator
@@ -1883,6 +1899,16 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         if (TryBuildCyberneticsCore()) {
             //std::cout<<"CYBERNETICS 1 1:28"<<std::endl;
         }
+    }
+    
+    if ((gateway_count > 0 || warpgate_count > 0) && CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) < 10){
+        if(gateway_count > 0){
+            TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
+        }
+        else{
+            TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+        }
+        
     }
 
     //      27      2:08      Warp Gate Research
