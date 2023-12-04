@@ -1970,6 +1970,18 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
     
+    if(base_count == 3 &&
+       warpgate_count >= 7 &&
+       assimilator_count == 6 &&
+       robotics_bay_count == 1 &&
+       forge_count == 1 &&
+       twilight_count == 1 &&
+       stargate_count == 1 &&
+       fleet_count == 1 &&
+       archive_count == 0){
+        TryBuildTemplarArchives();
+    }
+    
     //      117      8:08      Observer (Chrono Boost)
     //      124      8:20      Protoss Ground Weapons Level 2 (Chrono Boost)
     //      124      8:23      Colossus (Chrono Boost)
@@ -1981,7 +1993,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        forge_count == 1 &&
        twilight_count == 1 &&
        stargate_count == 1 &&
-       fleet_count == 1){
+       fleet_count == 1 &&
+       archive_count == 1){
         if(TryBuildExpansionNexus()){
             std::cout<<"BASE 4 8:38"<<std::endl;
         }
@@ -2000,6 +2013,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        gateway_count < 3 &&
        assimilator_count <= (base_count * 2) &&
        twilight_count == 1 &&
+       stargate_count == 1 &&
+       fleet_count == 1 &&
+       archive_count == 1 &&
        cannon_count < (base_count * 5) &&
        battery_count < (base_count * 3)){
         TryBuildAssimilator();
@@ -2016,6 +2032,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_facility_count == (base_count) &&
        assimilator_count == (base_count * 2) &&
        twilight_count == 1 &&
+       stargate_count == 1 &&
+       fleet_count == 1 &&
+       archive_count == 1 &&
        cannon_count <= (base_count * 5) &&
        battery_count <= (base_count * 3)){
         if(cannon_count < (base_count * 6)){
