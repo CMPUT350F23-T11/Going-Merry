@@ -169,6 +169,10 @@ void GoingMerry::OnUpgradeCompleted(UpgradeID upgrade)
         {
             ground_wep_1_researched = true;
         }
+        case UPGRADE_ID::PROTOSSGROUNDWEAPONSLEVEL2:
+        {
+            ground_wep_2_researched = true;
+        }
         case UPGRADE_ID::BLINKTECH:
         {
             blink_researched = true;
@@ -937,7 +941,20 @@ bool GoingMerry::TryBuildFleetBeacon()
 
 bool GoingMerry::TryBuildGateway()
 {
-    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE);
+    if (!warpgate_reasearched)
+    {
+        return TryBuildStructureNearPylon(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE);
+    }
+    else
+    {
+        if (TryBuildStructureNearPylon(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE))
+        {
+            TryBuildWarpGate();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool GoingMerry::TryBuildRoboticsFacility()
@@ -1074,6 +1091,7 @@ bool GoingMerry::TryBuildUnit(AbilityID ability_type_for_unit, UnitTypeID unit_t
         return false;
     }
     const Unit* unit = nullptr;
+
     if (!GetRandomUnit(unit, observation, unit_type)) {
         return false;
     }
@@ -1500,20 +1518,7 @@ void GoingMerry::TrySendHarassing(const sc2::Unit *base)
     
     if (harassers.size() == num_harassers) // if a pair of scouts available send to harass or scout
     {
-        bool at_staging = true;
-        for (const auto& harasser : harassers)
-        {
-            if (harasser->pos != staging_location)
-            {
-                at_staging = false;
-            }
-        }
-
-        if (at_staging)
-        {
-            cout << "All 4 zealots at staging, sending harassing..." << endl;
-            SendHarassing(base);
-        }
+        SendHarassing(base);
     }
 }
 
@@ -1524,7 +1529,7 @@ void GoingMerry::SendHarassing(const sc2::Unit *base)
     {
         //cout << UnitTypeToName(harassers[i]->unit_type) << " " << i << endl;
         //cout << harassers[i]->is_alive << endl;
-        if (harassers[i]->orders.empty()) 
+        if (harassers[i]->orders.empty())
         {
             Actions()->UnitCommand(harassers[i], ABILITY_ID::ATTACK_ATTACK, base->pos);
         }
@@ -1536,6 +1541,8 @@ void GoingMerry::SendHarassing(const sc2::Unit *base)
             }
         }
     }
+
+    Actions()->UnitCommand(harassers, ABILITY_ID::ATTACK_ATTACK, base->pos);
 }
 
 void GoingMerry::CheckIfAlive(int idetifier)
@@ -1573,7 +1580,6 @@ void GoingMerry::CheckIfAlive(int idetifier)
 void GoingMerry::TrySendScouts()
 {    
     // checking if a base is already found -> send harassing if conditions are met
-    int scout_size = 2;
     if (scouts.size() > 0)
     {
         CheckIfAlive(0);
@@ -1653,6 +1659,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     bool warp_upgrade_complete = false;
     bool thermal_lance_complete = false;
     bool ground_weapons_1_complete = false;
+    bool ground_weapons_2_complete = false;
     bool charge_complete = false;
     
     for (const auto& upgrade : upgrades){
@@ -1667,6 +1674,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
         if(upgrade == UPGRADE_ID::CHARGE){
             charge_complete = true;
+        }
+        if (upgrade == UPGRADE_ID::PROTOSSGROUNDWEAPONSLEVEL2)
+        {
+            ground_weapons_2_complete = true;
         }
     }
 
@@ -1689,7 +1700,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         
     }
 
-    if ( gateway_count > 0 && zealot_count < min_zealot_count)
+    if ( gateway_count > 0 && zealot_count < (min_zealot_count))
     {
         TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
     }
@@ -1773,12 +1784,12 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     if (gateway_count == 2 &&
         cybernetics_count > 0 &&
-        warpgate_reasearched == true &&
+        warp_upgrade_complete == true &&
         gateway_count > warpgate_count) {
 
         if (TryBuildWarpGate())
         {
-            //std::cout<<"RESEARCH WARPGATE 2:08"<<std::endl;
+            //std::cout<< "CONVERTING TO WARPGATE" << std::endl;
         }
     }
     
@@ -1915,7 +1926,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_bay_count == 1 &&
        forge_count == 1 &&
        twilight_count == 0){
- 
+        if (TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)) {
+            Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, rfacs.front());
+            //std::cout<<"COLOSSUS 1 6:36"<<std::endl;
+        }
         if(TryBuildTwilightCouncil()){
             //std::cout<<"TWILIGHT 6:52"<<std::endl;
 
@@ -1931,19 +1945,20 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_bay_count == 1 &&
        forge_count == 1 &&
        twilight_count == 1 &&
-       cannon_count <= 10 &&
        !charge_researched){
         if(TryBuildAssimilator()){
             //std::cout<<"GAS 3rd BASE 7:14"<<std::endl;
         }
-        if(cannon_count < 10){
+        if(cannon_count < base_count){
             if(TryBuildPhotonCannon()){
                 //std::cout<<"CANNON x5 7:14"<<std::endl;
             }
         }
-        
         //      99      7:24      Colossus (Chrono Boost)
-        
+        if (TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)) {
+            Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, rfacs.front());
+            //std::cout<<"COLOSSUS 1 7:24"<<std::endl;
+        }
         //      108      7:31      Charge
         if(!twilights.front()->orders.empty()){
             Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, twilights.front());
@@ -1958,10 +1973,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        assimilator_count == 6 &&
        robotics_bay_count == 1 &&
        forge_count == 1 &&
-       twilight_count == 1 &&
-       cannon_count == 5){
+       twilight_count == 1){
         if(TryBuildGateway()){
-            //std::cout<<"GATEWAY x3 7:48"<<std::endl;
+            //std::cout<<"GATEWAY x3 (1) 7:48"<<std::endl;
         }
     }
     
@@ -1971,10 +1985,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        assimilator_count == 6 &&
        robotics_bay_count == 1 &&
        forge_count == 1 &&
-       twilight_count == 1 &&
-       cannon_count == 5){
+       twilight_count == 1){
         if(TryBuildGateway()){
-            //std::cout<<"GATEWAY x3 7:48"<<std::endl;
+            //std::cout<<"GATEWAY x3 (2) 7:48"<<std::endl;
         }
     }
     
@@ -1984,10 +1997,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        assimilator_count == 6 &&
        robotics_bay_count == 1 &&
        forge_count == 1 &&
-       twilight_count == 1 &&
-       cannon_count == 5){
+       twilight_count == 1){
         if(TryBuildGateway()){
-            //std::cout<<"GATEWAY x3 7:48"<<std::endl;
+            //std::cout<<"GATEWAY x3 (3) 7:48"<<std::endl;
         }
     }
     
@@ -1996,8 +2008,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        assimilator_count == 6 &&
        robotics_bay_count == 1 &&
        forge_count == 1 &&
-       twilight_count == 1 &&
-       cannon_count < 10){
+       twilight_count == 1){
         if(TryBuildPhotonCannon()){
             //std::cout<<"MORE CANNONS x5 7:48"<<std::endl;
         }
@@ -2013,27 +2024,32 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        forge_count == 1 &&
        twilight_count == 1 &&
        ground_wep_2_researched){
+        if (TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)) {
+            Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, rfacs.front());
+            //std::cout<<"COLOSSUS 1 4:27"<<std::endl;
+        }
         if(TryBuildExpansionNexus()){
             //std::cout<<"EXPAND 3 8:38"<<std::endl;
-
         }
     }
     
-    //      144      9:07      Warp Prism (Chrono Boost)
     //      149      9:27      Gateway x3, Templar Archives
     if(base_count == 3 &&
        assimilator_count < 8){
         TryBuildAssimilator();
     }
 
-    //      149      9:36      Colossus (Chrono Boost)    
-    // general build order after
+    // general late game build order
     if(base_count > 3 &&
        warpgate_count < (base_count * 3) &&
        gateway_count < 3 &&
        assimilator_count <= (base_count * 2)){
-        TryBuildAssimilator();
+        //cout << "Executing late game build order" << endl;
         TryBuildGateway();
+        TryBuildPhotonCannon();
+        TryBuildRoboticsFacility();
+        TryBuildExpansionNexus();
+        TryBuildAssimilator();
     }
         
     // END BUILD ORDER
@@ -2072,6 +2088,17 @@ struct IsArmy {
     const ObservationInterface* observation_;
 };
 
+struct IsAttackable {
+    bool operator()(const Unit& unit) {
+        switch (unit.unit_type.ToType()) {
+        case UNIT_TYPEID::ZERG_OVERLORD: return false;
+        case UNIT_TYPEID::ZERG_OVERSEER: return false;
+        case UNIT_TYPEID::PROTOSS_OBSERVER: return false;
+        default: return true;
+        }
+    }
+};
+
 bool GoingMerry::TryBuildArmy()
 {
     const ObservationInterface* observation = Observation();
@@ -2087,47 +2114,29 @@ bool GoingMerry::TryBuildArmy()
         return false;
     }
 
-    // If we have a satisfying army already, pause until next expansion
-    //if (CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) < 3 && observation->GetFoodArmy() > 40)
-    //{
-    //    return false;
-    //}
-
-    //size_t n_mothership = CountUnitType(UNIT_TYPEID::PROTOSS_MOTHERSHIPCORE);
-    //n_mothership += CountUnitType(UNIT_TYPEID::PROTOSS_MOTHERSHIP);
-
-    //if (observation->GetFoodWorkers() > target_worker_count && n_mothership < 1)
-    //{
-    //    if (CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE) > 0)
-    //    {
-    //        TryBuildUnit(ABILITY_ID::TRAIN_MOTHERSHIPCORE, UNIT_TYPEID::PROTOSS_NEXUS);
-    //    }
-    //}
-
     size_t n_colossus = CountUnitType(UNIT_TYPEID::PROTOSS_COLOSSUS);
     size_t n_carrier = CountUnitType(UNIT_TYPEID::PROTOSS_CARRIER);
 
-    //Units templar = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR));
+    Units templar = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR));
 
-    //if (templar.size() > 1)
-    //{
-    //    Units merge_templars;
-
-    //    for (int i = 0; i < 2; ++i)
-    //    {
-    //        merge_templars.push_back(templar.at(i));
-    //    }
-    //    Actions()->UnitCommand(merge_templars, ABILITY_ID::MORPH_ARCHON);
-    //}
+    if (templar.size() > 1)
+    {
+        Units merge_templars;
+        for (int i = 0; i < 2; ++i)
+        {
+            merge_templars.push_back(templar.at(i));
+        }
+        Actions()->UnitCommand(merge_templars, ABILITY_ID::MORPH_ARCHON);
+    }
 
     // Train observer units
-    //if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) > 0)
-    //{
-    //    if (CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) < 1)
-    //    {
-    //        TryBuildUnit(ABILITY_ID::TRAIN_OBSERVER, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
-    //    }
-    //}
+    if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) > 0)
+    {
+        if (CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER) < 1)
+        {
+            TryBuildUnit(ABILITY_ID::TRAIN_OBSERVER, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+        }
+    }
 
     // If we already have a robotics bay but didn't reach max colossus count
     if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY) > 0 && n_colossus < max_colossus_count)
@@ -2138,10 +2147,6 @@ bool GoingMerry::TryBuildArmy()
             {
                 return true;
             }
-        }
-        else if (CountUnitType(UNIT_TYPEID::PROTOSS_DISRUPTOR) < 2)
-        {
-            TryBuildUnit(ABILITY_ID::TRAIN_DISRUPTOR, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
         }
     }
     else
@@ -2171,10 +2176,10 @@ bool GoingMerry::TryBuildArmy()
         {
             return false;
         }
-        //if (CountUnitType(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR) < 2 && CountUnitType(UNIT_TYPEID::PROTOSS_ARCHON) < 2)
-        //{
-        //    return TryWarpInUnit(ABILITY_ID::TRAINWARP_HIGHTEMPLAR);
-        //}
+        if (CountUnitType(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR) < 2 && CountUnitType(UNIT_TYPEID::PROTOSS_ARCHON) < 2)
+        {
+            return TryWarpInUnit(ABILITY_ID::TRAINWARP_HIGHTEMPLAR);
+        }
 
         // If we have robotics facility, build Stalkers. Else, build Adepts
         if (CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY) > 0)
@@ -2314,24 +2319,6 @@ void GoingMerry::ManageArmy()
                     }
                     break;
                 }
-                //Turns on guardian shell when close to an enemy
-                case (UNIT_TYPEID::PROTOSS_SENTRY): {
-                    if (!unit->orders.empty()) {
-                        if (unit->orders.front().ability_id == ABILITY_ID::ATTACK) {
-                            float distance = std::numeric_limits<float>::max();
-                            for (const auto& u : enemy_units) {
-                                float d = Distance2D(u->pos, unit->pos);
-                                if (d < distance) {
-                                    distance = d;
-                                }
-                            }
-                            if (distance < 6 && unit->energy >= 75) {
-                                Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_GUARDIANSHIELD);
-                            }
-                        }
-                    }
-                    break;
-                }
                 //Turns on Damage boost when close to an enemy
                 case (UNIT_TYPEID::PROTOSS_VOIDRAY): {
                     if (!unit->orders.empty()) {
@@ -2348,58 +2335,6 @@ void GoingMerry::ManageArmy()
                             }
                         }
                     }
-                    break;
-                }
-                //Turns on oracle weapon when close to an enemy
-                case (UNIT_TYPEID::PROTOSS_ORACLE): {
-                    if (!unit->orders.empty()) {
-                        float distance = std::numeric_limits<float>::max();
-                        for (const auto& u : enemy_units) {
-                            float d = Distance2D(u->pos, unit->pos);
-                            if (d < distance) {
-                                distance = d;
-                            }
-                        }
-                        if (distance < 6 && unit->energy >= 25) {
-                            Actions()->UnitCommand(unit, ABILITY_ID::BEHAVIOR_PULSARBEAMON);
-                        }
-                    }
-                    break;
-                }
-                //fires a disruptor nova when in range
-                case (UNIT_TYPEID::PROTOSS_DISRUPTOR): {
-                    float distance = std::numeric_limits<float>::max();
-                    Point2D closest_unit;
-                    for (const auto& u : enemy_units) {
-                        float d = Distance2D(u->pos, unit->pos);
-                        if (d < distance) {
-                            distance = d;
-                            closest_unit = u->pos;
-                        }
-                    }
-                    if (distance < 7) {
-                        Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_PURIFICATIONNOVA, closest_unit);
-                    }
-                    else {
-                        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, closest_unit);
-                    }
-                    break;
-                }
-                //controls disruptor novas.
-                case (UNIT_TYPEID::PROTOSS_DISRUPTORPHASED): {
-                    float distance = std::numeric_limits<float>::max();
-                    Point2D closest_unit;
-                    for (const auto& u : enemy_units) {
-                        if (u->is_flying) {
-                            continue;
-                        }
-                        float d = DistanceSquared2D(u->pos, unit->pos);
-                        if (d < distance) {
-                            distance = d;
-                            closest_unit = u->pos;
-                        }
-                    }
-                    Actions()->UnitCommand(unit, ABILITY_ID::GENERAL_MOVE, closest_unit);
                     break;
                 }
                 default:
@@ -2439,17 +2374,6 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
         }
     }
 }
-
-struct IsAttackable {
-    bool operator()(const Unit& unit) {
-        switch (unit.unit_type.ToType()) {
-        case UNIT_TYPEID::ZERG_OVERLORD: return false;
-        case UNIT_TYPEID::ZERG_OVERSEER: return false;
-        case UNIT_TYPEID::PROTOSS_OBSERVER: return false;
-        default: return true;
-        }
-    }
-};
 
 bool GoingMerry::BuildAdaptiveUnit(const Unit* reference_unit)
 {
