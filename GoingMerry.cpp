@@ -1704,7 +1704,7 @@ void GoingMerry::TrySendScouts()
     if (enemy_bases.size() > 0) // only send harass if an enemy base is found
     {
         const sc2::Unit *&base = sc2::GetRandomEntry(enemy_bases);;
-        TrySendHarassing(base);
+//        TrySendHarassing(base);
     }
 
     if (scouts.size() == scout_size) // if a pair of scouts available send to harass or scout
@@ -2340,7 +2340,7 @@ void GoingMerry::ManageArmy()
             if (army.size() > 10 && (num_colossus > 1 || num_immortals > 2))
             {
                 //cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
-                AttackWithUnit(unit, observation, target_enemy->pos);
+//                AttackWithUnit(unit, observation, target_enemy->pos);
             }
             else
             {

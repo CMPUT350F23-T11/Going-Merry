@@ -45,20 +45,20 @@ int main(int argc, char* argv[]) {
     
     // RunBot doesn't work for me, I use below instead (sam)
     //  -------------------------------------------------
-    //Coordinator coordinator;
-    //coordinator.LoadSettings(argc, argv);
+    Coordinator coordinator;
+    coordinator.LoadSettings(argc, argv);
 
-     //GoingMerry bot;
-     //coordinator.SetParticipants({
-     //    CreateParticipant(Race::Protoss, &bot),
-     //    CreateComputer(Race::Zerg)
-     //});
+     GoingMerry bot;
+     coordinator.SetParticipants({
+         CreateParticipant(Race::Protoss, &bot),
+         CreateComputer(Race::Zerg)
+     });
 
-     //coordinator.LaunchStarcraft();
-     //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
+     coordinator.LaunchStarcraft();
+     coordinator.StartGame(sc2::kMapBelShirVestigeLE);
 
-     //while (coordinator.Update()) {
-     //}
+     while (coordinator.Update()) {
+     }
     // -------------------------------------------------
     
     // Code for report metrics
