@@ -31,7 +31,7 @@ private:
 #pragma region Data
 
 	const ObservationInterface* observation;
-	bool warpgate_reasearched = false;
+	bool warpgate_researched = false;
     bool thermal_lance_researched = false;
     bool ground_wep_1_researched = false;
     bool ground_wep_2_researched = false;

@@ -105,7 +105,6 @@ void GoingMerry::OnStep()
     {
         return;
     }
-
     if (TryBuildExpansionNexus())
     {
         return;
@@ -137,7 +136,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
             const ObservationInterface* observation = Observation();
             Units bases = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
 
-            if (!warpgate_reasearched)
+            if (!warpgate_researched)
             {
                 Actions()->UnitCommand(unit, ABILITY_ID::RESEARCH_WARPGATE);
                 OnUpgradeCompleted(UPGRADE_ID::WARPGATERESEARCH);
@@ -163,7 +162,7 @@ void GoingMerry::OnUpgradeCompleted(UpgradeID upgrade)
     {
         case UPGRADE_ID::WARPGATERESEARCH:
         {
-            warpgate_reasearched = true;
+            warpgate_researched = true;
         }
         case UPGRADE_ID::EXTENDEDTHERMALLANCE:
         {
@@ -950,7 +949,7 @@ bool GoingMerry::TryBuildFleetBeacon()
 
 bool GoingMerry::TryBuildGateway()
 {
-    if (!warpgate_reasearched)
+    if (!warpgate_researched)
     {
         return TryBuildStructureNearPylon(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE);
     }
@@ -1191,7 +1190,7 @@ bool GoingMerry::TryBuildWarpGate()
     bool gateway_morphed = false;
     Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
 
-    if (warpgate_reasearched)
+    if (warpgate_researched)
     {
         for (const auto& gateway : gateways)
         {
@@ -1365,7 +1364,6 @@ bool GoingMerry::TryBuildPhotonCannon()
         if (observation->IsPlacable(grid) && IsNextToCliff(grid))
         {
             vector<Point2D> points = GetOffSetPoints(grid, UNIT_TYPEID::PROTOSS_PHOTONCANNON);
-//            cout << "Num points: " << points.size() << endl;
 
             for (auto point : points)
             {
@@ -1375,10 +1373,9 @@ bool GoingMerry::TryBuildPhotonCannon()
                     {
                         continue;
                     }
+
                     if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point))
                     {
-                        // cout << "Can be built" << endl;
-                        
                         return true;
                         
                     }
@@ -1693,6 +1690,7 @@ void GoingMerry::TrySendScouts()
 
 void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t current_minerals, uint32_t current_gas)
 {
+    
     // STRUCTURE/UNIT COUNTS
     size_t pylon_count = CountUnitType(UNIT_TYPEID::PROTOSS_PYLON);
     size_t gateway_count = CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY);
@@ -1719,7 +1717,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     Units rbays = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSBAY));
     Units forges = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_FORGE));
     Units twilights = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL));
-
     bool core_complete = false;
     //      14      0:20      Pylon
     if (pylon_count == 0 &&
@@ -1786,13 +1783,24 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
 
+    if (gateway_count == 2 &&
+        cybernetics_count > 0 &&
+        warpgate_researched == true &&
+        gateway_count > warpgate_count) {
+
+        if (TryBuildWarpGate())
+        {
+            //std::cout<< "CONVERTING TO WARPGATE" << std::endl;
+        }
+    }
+    
+    
     //      31      2:56      Nexus
-    if (cybernetics_count > 0 &&
-        (gateway_count <= 2 || warpgate_count <= 2) &&
-        base_count == 1) {
-        if (current_minerals >= 400) {
-            if (TryBuildExpansionNexus()) {
-                //                std::cout<<"BASE 2 2:56"<<std::endl;
+    if(cybernetics_count > 0 &&
+       (gateway_count <= 2 || warpgate_count <= 2) &&
+       base_count == 1){
+        if(current_minerals >= 400){
+            if(TryBuildExpansionNexus()){
             }
         }
     }
@@ -1857,14 +1865,14 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
 
-    //      58      5:05      Extended Thermal Lance
-    if (base_count == 2 &&
-        cybernetics_count > 0 &&
-        warpgate_count >= 3 &&
-        robotics_facility_count >= 1 &&
-        robotics_bay_count == 1 &&
-        battery_count >= 3) {
-
+    //      62      5:35      Nexus
+    if(base_count == 2 &&
+       cybernetics_count > 0 &&
+       warpgate_count >= 3 &&
+       robotics_facility_count >= 1 &&
+       robotics_bay_count == 1 &&
+       battery_count >= 3){
+        
         //      62      5:35      Nexus
         if(TryBuildExpansionNexus()){
             std::cout<<"BASE 3 5:35"<<std::endl;
