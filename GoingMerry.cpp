@@ -118,13 +118,31 @@ void GoingMerry::OnStep()
     }
     // ____________________________________________________________________________________
     
-    // Fix for newly created idle workers
-    //Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_PROBE));
-    //for(const auto& worker : workers){
-    //    if(worker->orders.empty()){
-    //        MineIdleWorkers(worker, ABILITY_ID::HARVEST_GATHER_PROBE, UNIT_TYPEID::PROTOSS_ASSIMILATOR);
-    //    }
-    //}
+    if (enemy_race == -1)
+    {
+        if (!enemy_units.empty())
+        {
+            for (const auto& unit : enemy_units)
+            {
+                if (unit->unit_type.to_string().find("ZERG"))
+                {
+                    enemy_race = 2;
+                    break;
+                }
+                else if (unit->unit_type.to_string().find("TERRAN"))
+                {
+                    enemy_race = 1;
+                    break;
+                }
+                else if (unit->unit_type.to_string().find("PROTOSS"))
+                {
+                    enemy_race = 0;
+                    break;
+                }
+            }
+        }
+    }
+
     if (current_supply > (supply_cap - 20))
     {
         TryBuildPylon();
@@ -137,17 +155,12 @@ void GoingMerry::OnStep()
     TrySendScouts();
 
     ManageUpgrades();
-    
-    TryBuildWarpGate();
 
     BuildOrder(ingame_time, current_supply, current_minerals, current_gas);
 
-    TryBuildArmy();
+    TryBuildArmy();  // Standard army build
 
-    if (TryBuildExpansionNexus())
-    {
-        return;
-    }
+    //TryBuildAdaptiveArmy();  // Adaptive army build
 
     if (TryBuildPylon())
     {
@@ -680,7 +693,7 @@ bool GoingMerry::TryBuildStructure(AbilityID ability_type_for_structure, UnitTyp
 
 //Try build structure given a location. This is used most of the time
 // Used by TryBuildStructureNearPylon
-bool GoingMerry::TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false) {
+bool GoingMerry::TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion) {
 
     const ObservationInterface* observation = Observation();
     Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
@@ -754,6 +767,11 @@ bool GoingMerry::TryBuildStructureNearPylon(AbilityID ability_type_for_structure
 
 size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
     return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
+}
+
+size_t GoingMerry::CountEnemyUnitType(UNIT_TYPEID unit_type)
+{
+    return Observation()->GetUnits(Unit::Alliance::Enemy, IsUnit(unit_type)).size();
 }
 
 const Unit* GoingMerry::FindNearestMineralPatch(const Point2D & start){
@@ -998,9 +1016,10 @@ bool GoingMerry::TryBuildFleetBeacon()
 bool GoingMerry::TryBuildGateway()
 {
     size_t num_gateway = CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY);
+    size_t num_warpgate = CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE);
     size_t num_base = CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS);
 
-    if ((num_gateway < (num_base * 3)) && (num_gateway < 20))
+    if ((num_gateway + num_warpgate) < ((num_base * 3) + 1))
     {
         if (!warpgate_researched)
         {
@@ -1043,10 +1062,7 @@ bool GoingMerry::TryBuildStargate()
     {
         return false;
     }
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE) > 0)
-    {
-        return false;
-    }
+
     return TryBuildStructureNearPylon(ABILITY_ID::BUILD_STARGATE, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
@@ -1655,6 +1671,10 @@ void GoingMerry::SendScouting()
             }
             if (!found)
             {
+                if (cur->is_flying && !(cur->unit_type==UNIT_TYPEID::ZERG_OVERLORD))
+                {
+                    enemy_air_units = true;
+                }
                 enemy_units.push_back(cur);
             }
         }
@@ -1698,7 +1718,7 @@ void GoingMerry::TrySendHarassing(const sc2::Unit *base)
 
     Units army = observation->GetUnits(Unit::Alliance::Self, IsArmy(observation));
     
-    if ((harassers.size() == num_harassers) && army.size() > 20 && fullShields)
+    if ((harassers.size() == num_harassers) && fullShields)
     {
         SendHarassing(base);
     }
@@ -1863,7 +1883,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     if (gateway_count == 1 &&
         assimilator_count < 2) {
         if (TryBuildAssimilator()) {
-            //            std::cout<<"GAS x2 0:48"<<std::endl;
+            //            std::cout<<"GAS x2 0:58"<<std::endl;
         }
     }
 
@@ -1895,18 +1915,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             }
         }
     }
-
-//    if (gateway_count == 2 &&
-//        cybernetics_count > 0 &&
-//        warpgate_researched == true &&
-//        gateway_count > warpgate_count) {
-//
-//        if (TryBuildWarpGate())
-//        {
-//            //std::cout<< "CONVERTING TO WARPGATE" << std::endl;
-//        }
-//    }
-    
     
     //      31      2:56      Nexus
     if(cybernetics_count > 0 &&
@@ -2026,10 +2034,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        robotics_bay_count == 1 &&
        forge_count == 1 &&
        twilight_count == 0){
-//        if (TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY)) {
-//            Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, rfacs.front());
-//            //std::cout<<"COLOSSUS 1 6:36"<<std::endl;
-//        }
         if(TryBuildTwilightCouncil()){
 //            std::cout<<"TWILIGHT 6:52"<<std::endl;
 
@@ -2058,6 +2062,15 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
 
+    if (base_count == 3 &&
+        assimilator_count < 6)
+    {
+        if (TryBuildAssimilator()) {
+            //            std::cout<<"GAS 3rd BASE 7:14"<<std::endl;
+
+        }
+    }
+
     //      109      7:48      Gateway x2
     //      109      7:58      Gateway
     if (base_count == 3 &&
@@ -2080,15 +2093,16 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
 
-    if (base_count == 3 &&
-        warpgate_count >= 7 &&
-        assimilator_count == 6 &&
-        robotics_bay_count == 1 &&
-        forge_count == 1 &&
+    if (base_count >= 3 &&
+        warpgate_count >= 6 &&
+        assimilator_count >= 6 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 1 &&
         twilight_count == 1 &&
         stargate_count == 0) {
+
         if (TryBuildStargate()) {
-            //            std::cout<<"STARGATE"<<std::endl;
+                        std::cout<<"STARGATE"<<std::endl;
         }
 
         if (cannon_count < max_cannon_count) {
@@ -2138,6 +2152,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         TryBuildTemplarArchives();
     }
 
+
+
     //      133      8:38      Nexus
     if (base_count == 3 &&
         warpgate_count >= 7 &&
@@ -2160,7 +2176,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         assimilator_count <= (base_count * 2) &&
         twilight_count == 1 &&
         cannon_count < (base_count * 5) &&
-        battery_count < (base_count * 3)) {
+        battery_count < (base_count * 3) &&
+        stargate_count < (base_count)) {
 
         TryBuildAssimilator();
         if (warpgate_count < (base_count * 3)) {
@@ -2168,6 +2185,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
         if (robotics_facility_count < (base_count)) {
             TryBuildRoboticsFacility();
+        }
+        if (stargate_count < base_count)
+        {
+            TryBuildStargate();
         }
     }
 
@@ -2369,7 +2390,7 @@ bool GoingMerry::TryBuildArmy()
     }
     else
     {
-        if (observation->GetMinerals() > 120 && observation->GetVespene() > 25 && !charge_researched)
+        if (observation->GetMinerals() > 120 && observation->GetVespene() > 25)
         {
             if (num_cyberneticscore > 0)
             {
@@ -2379,6 +2400,180 @@ bool GoingMerry::TryBuildArmy()
         else if (observation->GetMinerals() > 100)
         {
             return TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+        }
+
+        return false;
+    }
+}
+
+bool GoingMerry::TryBuildAdaptiveArmy()
+{
+    const ObservationInterface* observation = Observation();
+
+    // Get army unit counts
+    size_t num_zealot = CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT);
+    size_t num_adept = CountUnitType(UNIT_TYPEID::PROTOSS_ADEPT);
+    size_t num_stalker = CountUnitType(UNIT_TYPEID::PROTOSS_STALKER);
+    size_t num_immortal = CountUnitType(UNIT_TYPEID::PROTOSS_IMMORTAL);
+    size_t num_colossus = CountUnitType(UNIT_TYPEID::PROTOSS_COLOSSUS);
+    size_t num_voidray = CountUnitType(UNIT_TYPEID::PROTOSS_VOIDRAY);
+    size_t num_phoenix = CountUnitType(UNIT_TYPEID::PROTOSS_PHOENIX);
+    size_t num_hightemplar = CountUnitType(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR);
+    size_t num_archon = CountUnitType(UNIT_TYPEID::PROTOSS_ARCHON);
+    size_t num_observer = CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER);
+
+    // Get production structure counts
+    size_t num_bases = CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS);
+    size_t num_gateway = CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY);
+    size_t num_warpgate = CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE);
+    size_t num_cyberneticscore = CountUnitType(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
+    size_t num_roboticsfacility = CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+    size_t num_roboticsbay = CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY);
+    size_t num_stargate = CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE);
+
+    if (observation->GetFoodWorkers() <= target_worker_count)
+    {
+        return false;
+    }
+
+    // Pause building too many units until 2 bases are expanded
+    if (num_bases < 2 && observation->GetFoodArmy() > 10)
+    {
+        return false;
+    }
+
+    // Merge templars to create Archons
+    Units templar = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR));
+
+    if (templar.size() > 1)
+    {
+        Units merge_templars;
+        for (int i = 0; i < 2; ++i)
+        {
+            merge_templars.push_back(templar.at(i));
+        }
+        Actions()->UnitCommand(merge_templars, ABILITY_ID::MORPH_ARCHON);
+    }
+
+    // Ensure we have enough stalkers for scouting
+    if (num_stalker < num_scouts)
+    {
+        if (num_warpgate > 0)
+        {
+            return TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+        }
+        else
+        {
+            if (num_gateway > 0 && num_cyberneticscore > 0)
+            {
+                return TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
+            }
+        }
+    }
+
+    // Ensure we have enough zealots for harassing
+    if (num_zealot < num_harassers)
+    {
+        if (num_warpgate > 0)
+        {
+            return TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+        }
+        else
+        {
+            if (num_gateway > 0)
+            {
+                return TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+            }
+        }
+    }
+
+    if (observation->GetMinerals() > 250 && observation->GetVespene() > 150 && num_stargate > 0 && num_voidray < max_voidray_count)
+    {
+        BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_VOIDRAY, ABILITY_ID::TRAIN_VOIDRAY, UNIT_TYPEID::PROTOSS_STARGATE);
+    }
+    if (num_phoenix < max_phoenix_count && num_stargate > 0)
+    {
+        BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_PHOENIX, ABILITY_ID::TRAIN_PHOENIX, UNIT_TYPEID::PROTOSS_STARGATE);
+    }
+
+    // Train observer units
+    if (num_roboticsfacility > 0)
+    {
+        if (num_observer < max_observer_count)
+        {
+            TryBuildUnit(ABILITY_ID::TRAIN_OBSERVER, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+        }
+    }
+
+    // If we already have a robotics bay but didn't reach max colossus count
+    if (num_roboticsbay > 0 && num_colossus < max_colossus_count)
+    {
+        if (observation->GetMinerals() > 300 && observation->GetVespene() > 200)
+        {
+            if (BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_COLOSSUS, ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY))
+            {
+                return true;
+            }
+        }
+    }
+    else
+    {
+        // Build Immortals if we can't build Colossus
+        if (observation->GetMinerals() > 250 && observation->GetVespene() > 100 && num_immortal < max_immortal_count + 5)
+        {
+            if (BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_IMMORTAL, ABILITY_ID::TRAIN_IMMORTAL, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY))
+            {
+                return true;
+            }
+        }
+    }
+
+    // After warpgate is researched
+    if (warpgate_researched && num_warpgate > 0)
+    {
+        if (observation->GetMinerals() > 1000 && observation->GetVespene() < 200)
+        {
+            return BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_ZEALOT, ABILITY_ID::TRAINWARP_ZEALOT, UNIT_TYPEID::PROTOSS_WARPGATE, true);
+        }
+        if (num_stalker > max_stalker_count)
+        {
+            return false;
+        }
+        if (num_adept > max_stalker_count)
+        {
+            return false;
+        }
+        if (num_hightemplar < 2 && num_archon < max_archon_count)
+        {
+            return BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR, ABILITY_ID::TRAINWARP_HIGHTEMPLAR, UNIT_TYPEID::PROTOSS_WARPGATE, true);
+        }
+
+        // If we have robotics facility, build Stalkers. Else, build Adepts
+        if (num_roboticsfacility > 0)
+        {
+            return BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_STALKER, ABILITY_ID::TRAINWARP_STALKER, UNIT_TYPEID::PROTOSS_WARPGATE, true);
+        }
+        else if (!charge_researched)
+        {
+            return BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_ADEPT, ABILITY_ID::TRAINWARP_ADEPT, UNIT_TYPEID::PROTOSS_WARPGATE, true);
+        }
+        else
+        {
+            return BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_ZEALOT, ABILITY_ID::TRAINWARP_ZEALOT, UNIT_TYPEID::PROTOSS_WARPGATE, true);
+        }
+    }
+    else
+    {
+        if (observation->GetMinerals() > 120 && observation->GetVespene() > 25)
+        {
+            if (num_cyberneticscore > 0)
+            {
+                return BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_ADEPT, ABILITY_ID::TRAIN_ADEPT, UNIT_TYPEID::PROTOSS_GATEWAY);
+            }
+        }
+        else if (observation->GetMinerals() > 100)
+        {
+            return BuildAdaptiveUnit(UNIT_TYPEID::PROTOSS_ZEALOT, ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
         }
 
         return false;
@@ -2444,7 +2639,18 @@ void GoingMerry::ManageArmy()
 
             if (unit->shield < (unit->shield_max/4))
             {
-                Actions()->UnitCommand(unit, ABILITY_ID::GENERAL_PATROL, staging_location);
+                const Unit *shield_battery = nullptr;
+
+                if (GetRandomUnit(shield_battery, observation, UNIT_TYPEID::PROTOSS_SHIELDBATTERY))
+                {
+                    Actions()->UnitCommand(unit, ABILITY_ID::GENERAL_MOVE, shield_battery->pos);
+                    continue;
+                }
+                else
+                {
+                    Actions()->UnitCommand(unit, ABILITY_ID::GENERAL_PATROL, staging_location);
+                    continue;
+                }
             }
 
             if (find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
@@ -2454,13 +2660,25 @@ void GoingMerry::ManageArmy()
                 continue;
             }
 
-            if ((army.size() > 22) && ((num_colossus > 2 || num_voidray > 1) || (num_colossus > 4) || (num_immortals > max_immortal_count && num_colossus > 2)))
+            if (unit->unit_type == UNIT_TYPEID::PROTOSS_SHIELDBATTERY)
+            {
+                Actions()->UnitCommand(unit, ABILITY_ID::RESTORESHIELDS);
+                continue;
+            }
+
+            if (unit->unit_type == UNIT_TYPEID::PROTOSS_OBSERVER)
+            {
+                Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, target_enemy->pos);
+                continue;
+            }
+
+            if ((army.size() > 20) && ((num_colossus > 2 || num_voidray > 1) || (num_colossus > 4) || (num_immortals >= max_immortal_count && num_colossus > 2)))
             {
                 //cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
                 AttackWithUnit(unit, observation, target_enemy->pos);
             }
             // If supply cap reached and current supply used is 195
-            else if (observation->GetFoodUsed() > 190)
+            else if (observation->GetFoodUsed() > 180)
             {
                 AttackWithUnit(unit, observation, target_enemy->pos);
             }
@@ -2472,14 +2690,6 @@ void GoingMerry::ManageArmy()
             switch (unit->unit_type.ToType()) {
 
                 //Stalker blink micro, blinks back towards your base
-                case(UNIT_TYPEID::PROTOSS_OBSERVER): {
-                    
-                    if(!enemy_units.empty()){
-                        Actions()->UnitCommand(unit, ABILITY_ID::ATTACK, enemy_units.front()->pos);
-                        break;
-                    }
-                    break;
-                }
                 case(UNIT_TYPEID::PROTOSS_STALKER): {
                     if (blink_researched) {
                         const Unit* old_unit = observation->GetUnit(unit->tag);
@@ -2565,10 +2775,237 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
     }
 }
 
-bool GoingMerry::BuildAdaptiveUnit(const Unit* reference_unit)
+bool GoingMerry::BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID ability_type, UNIT_TYPEID production_structure_type, bool warp)
 {
     // TODO: Based on reference_unit and enemy army composition, issue build order
     //       for counter unit
+
+    size_t num_zealot = CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT);
+    size_t num_adept = CountUnitType(UNIT_TYPEID::PROTOSS_ADEPT);
+    size_t num_stalker = CountUnitType(UNIT_TYPEID::PROTOSS_STALKER);
+    size_t num_immortal = CountUnitType(UNIT_TYPEID::PROTOSS_IMMORTAL);
+    size_t num_colossus = CountUnitType(UNIT_TYPEID::PROTOSS_COLOSSUS);
+    size_t num_voidray = CountUnitType(UNIT_TYPEID::PROTOSS_VOIDRAY);
+    size_t num_phoenix = CountUnitType(UNIT_TYPEID::PROTOSS_PHOENIX);
+    size_t num_hightemplar = CountUnitType(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR);
+    size_t num_archon = CountUnitType(UNIT_TYPEID::PROTOSS_ARCHON);
+
+    if (enemy_race == 0)
+    {
+        // Protoss army units to counter
+        size_t num_enemy_immortal = CountEnemyUnitType(UNIT_TYPEID::PROTOSS_IMMORTAL);
+        size_t num_enemy_colossus = CountEnemyUnitType(UNIT_TYPEID::PROTOSS_COLOSSUS);
+        size_t num_enemy_archon = CountEnemyUnitType(UNIT_TYPEID::PROTOSS_ARCHON);
+
+        if (reference_unit == UNIT_TYPEID::PROTOSS_ADEPT)
+        {
+            if (charge_researched)
+            {
+                if (warp)
+                {
+                    TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+                }
+                else
+                {
+                    TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+                }
+            }
+        }
+        else if (reference_unit == UNIT_TYPEID::PROTOSS_VOIDRAY)
+        {
+            if (num_enemy_archon > num_colossus)
+            {
+                if (num_archon < (max_archon_count + (max_voidray_count / 2)))
+                {
+                    if (warp)
+                    {
+                        return TryWarpInUnit(ABILITY_ID::TRAINWARP_HIGHTEMPLAR);
+                    }
+                    else
+                    {
+                        return TryBuildUnit(ABILITY_ID::TRAIN_HIGHTEMPLAR, UNIT_TYPEID::PROTOSS_GATEWAY);
+                    }
+                }
+            }
+        }
+        else if (reference_unit == UNIT_TYPEID::PROTOSS_PHOENIX)
+        {
+            if (!enemy_air_units)
+            {
+                if (num_stalker < (max_stalker_count + (max_phoenix_count / 2)))
+                {
+                    return TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+                }
+            }
+            else
+            {
+                if (num_enemy_colossus > num_enemy_immortal)
+                {
+                    if (num_voidray < (max_voidray_count + (max_phoenix_count / 2)))
+                    {
+                        return TryBuildUnit(ABILITY_ID::TRAIN_VOIDRAY, UNIT_TYPEID::PROTOSS_STARGATE);
+                    }
+                }
+            }
+        }
+    }
+     
+    else if (enemy_race == 1)
+    {
+        // Terran army units to counter
+        size_t num_siege_tank = CountEnemyUnitType(UNIT_TYPEID::TERRAN_SIEGETANK);
+        size_t num_hellion = CountEnemyUnitType(UNIT_TYPEID::TERRAN_HELLION);
+        size_t num_viking = CountEnemyUnitType(UNIT_TYPEID::TERRAN_VIKINGASSAULT);
+        size_t num_ghost = CountEnemyUnitType(UNIT_TYPEID::TERRAN_GHOST);
+        size_t num_thor = CountEnemyUnitType(UNIT_TYPEID::TERRAN_THOR);
+
+        if (reference_unit == UNIT_TYPEID::PROTOSS_ADEPT)
+        {
+            if (charge_researched)
+            {
+                if (warp)
+                {
+                    TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+                }
+                else
+                {
+                    TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+                }
+            }
+        }
+
+        else if (reference_unit == UNIT_TYPEID::PROTOSS_COLOSSUS)
+        {
+            if (num_siege_tank > num_hellion)
+            {
+                if (num_immortal < (max_immortal_count + (max_colossus_count/2)))
+                {
+                    return TryBuildUnit(ABILITY_ID::TRAIN_IMMORTAL, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+                }
+            }
+        }
+
+        else if (reference_unit == UNIT_TYPEID::PROTOSS_VOIDRAY)
+        {
+            if (num_viking > num_ghost)
+            {
+                if (num_archon < (max_archon_count + (max_voidray_count/2)))
+                {
+                    if (warp)
+                    {
+                        return TryBuildUnit(ABILITY_ID::TRAIN_HIGHTEMPLAR, UNIT_TYPEID::PROTOSS_GATEWAY);
+                    }
+                    else
+                    {
+                        return TryWarpInUnit(ABILITY_ID::TRAINWARP_HIGHTEMPLAR);
+                    }
+                }
+                else
+                {
+                    return TryBuildUnit(ABILITY_ID::TRAIN_PHOENIX, UNIT_TYPEID::PROTOSS_STARGATE);
+                }
+            }
+        }
+
+        else if (reference_unit == UNIT_TYPEID::PROTOSS_PHOENIX)
+        {
+            if (!enemy_air_units)
+            {
+                if (num_stalker < (max_stalker_count + (max_phoenix_count / 2)))
+                {
+                    return TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+                }
+            }
+            else
+            {
+                if (num_thor > num_viking)
+                {
+                    if (num_voidray < (max_voidray_count + (max_phoenix_count / 2)))
+                    {
+                        return TryBuildUnit(ABILITY_ID::TRAIN_VOIDRAY, UNIT_TYPEID::PROTOSS_STARGATE);
+                    }
+                }
+            }
+        }
+    }
+     
+    else if (enemy_race == 2)
+    {
+        // Zerg army units to counter
+        size_t num_corrputor = CountEnemyUnitType(UNIT_TYPEID::ZERG_CORRUPTOR);
+        size_t num_hydralisk = CountEnemyUnitType(UNIT_TYPEID::ZERG_HYDRALISK);
+        size_t num_ultralisk = CountEnemyUnitType(UNIT_TYPEID::ZERG_ULTRALISK);
+
+        if (reference_unit == UNIT_TYPEID::PROTOSS_ADEPT)
+        {
+            if (charge_researched)
+            {
+                if (warp)
+                {
+                    return TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+                }
+                else
+                {
+                    return TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+                }
+            }
+        }
+
+        else if (reference_unit == UNIT_TYPEID::PROTOSS_COLOSSUS)
+        {
+            if (num_corrputor > num_hydralisk && CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE) > 0)
+            {
+                if (num_voidray < (max_voidray_count + (max_colossus_count / 2)))
+                {
+                    return TryBuildUnit(ABILITY_ID::TRAIN_VOIDRAY, UNIT_TYPEID::PROTOSS_STARGATE);
+                }
+            }
+        }
+
+        else if (reference_unit == UNIT_TYPEID::PROTOSS_VOIDRAY)
+        {
+            if (num_ultralisk < 3)  // Ultralisk has high kill priority
+            {
+                if ((num_hydralisk > num_corrputor) || (num_hydralisk > (num_ultralisk * 2)))
+                {
+                    if (num_colossus < (max_colossus_count + (max_voidray_count / 2)))
+                    {
+                        return TryBuildUnit(ABILITY_ID::TRAIN_COLOSSUS, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+                    }
+                }
+            }
+        }
+
+        else if (reference_unit == UNIT_TYPEID::PROTOSS_PHOENIX)
+        {
+            if (!enemy_air_units)
+            {
+                if (num_stalker < (max_stalker_count + (max_phoenix_count / 2)))
+                {
+                    return TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+                }
+            }
+            else
+            {
+                if (num_ultralisk > 4)
+                {
+                    if (num_archon < (max_archon_count + (max_phoenix_count / 2)))
+                    {
+                        return TryWarpInUnit(ABILITY_ID::TRAINWARP_HIGHTEMPLAR);
+                    }
+                }
+            }
+        }
+    }
+
+    if (warp)
+    {
+        return TryWarpInUnit(ability_type);
+    }
+    else
+    {
+        return TryBuildUnit(ability_type, production_structure_type);
+    }
 
     return false;
 }

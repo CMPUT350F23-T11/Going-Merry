@@ -30,6 +30,9 @@ private:
 
 #pragma region Data
 
+	int enemy_race = -1;  // -1: Not yet determined, 0: Protoss, 1: Terran, 2: Zerg
+	bool enemy_air_units = false;
+
 	const ObservationInterface* observation;
 	bool warpgate_researched = false;
     bool thermal_lance_researched = false;
@@ -81,7 +84,7 @@ private:
     bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
     
     //Try build structure given a location. This is used most of the time
-    bool TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion);
+    bool TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false);
     bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
     
     bool TryBuildProbe();
@@ -95,6 +98,7 @@ private:
     void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
     
 	size_t CountUnitType(UNIT_TYPEID unit_type);
+	size_t CountEnemyUnitType(UNIT_TYPEID unit_type);
 	const Unit* FindNearestMineralPatch(const Point2D& start);
 	//bool AlreadyBuilt(const Unit* ref, const Units units);
 	//bool help(const Point2D& point);
@@ -169,11 +173,12 @@ private:
 
 	void ManageUpgrades();
 	bool TryBuildArmy();
+	bool TryBuildAdaptiveArmy();
 
 	void ManageArmy();
 	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);
 	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // TODO
-	bool BuildAdaptiveUnit(const Unit* reference_unit);
+	bool BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID ability_type, UNIT_TYPEID production_structure_type, bool warp = false);
 };
 
 #endif
