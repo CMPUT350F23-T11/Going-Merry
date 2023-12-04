@@ -47,15 +47,17 @@ private:
 
 	const Unit* scouting_probe = nullptr;
 	int num_scouts = 2;
-	int num_harassers = 6;
+	int num_harassers = 10;
 	int target_worker_count = 15;
-	int max_zealot_count = 20;
-	int max_stalker_count = 20;
-	int max_immortal_count = 10;
-	int max_colossus_count = 10;
-	int max_voidray_count = 10;
-	int max_phoenix_count = 10;
+	int max_zealot_count = 10;  // Supply: 2
+	int max_stalker_count = 15;  // Supply: 2
+	int max_immortal_count = 5;  // Supply: 4
+	int max_colossus_count = 5;  // Supply: 6
+	int max_voidray_count = 5;  // Supply: 4
+	int max_phoenix_count = 10;  // Supply: 2
+	int max_archon_count = 5;  // Supply: 4
 	int max_cannon_count = 10;
+	int max_observer_count = 1;
 		
 	vector<int> directionX{ 1,-1,0,0,1,1,-1,-1 };
 	vector<int> directionY{ 0,0,1,-1,1,-1,1,-1 };
