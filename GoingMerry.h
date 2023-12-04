@@ -28,7 +28,7 @@ public:
 
 private:
 
-#pragma region private data
+#pragma region Data
 
 	const ObservationInterface* observation;
 	bool warpgate_reasearched = false;
@@ -38,6 +38,22 @@ private:
 	bool blink_researched = false;
 	bool charge_researched = false;
 
+	std::vector<const Unit*> enemy_units;
+	std::vector<const Unit*> scouts;
+	std::vector<const Unit*> harassers;
+	std::vector<sc2::Point2D> visitedLocations;
+	std::vector<Point3D> expansions;
+	std::vector<Point2D> base_locations;
+
+	const Unit* scouting_probe = nullptr;
+	int num_scouts = 2;
+	int num_harassers = 10;
+	int scout_size = 2;
+	int target_worker_count = 15;
+	int min_zealot_count = 10;
+	int max_colossus_count = 5;
+	int max_stalker_count = 20;
+	int max_immortal_count = 10;
 		
 	vector<int> directionX{ 1,-1,0,0,1,1,-1,-1 };
 	vector<int> directionY{ 0,0,1,-1,1,-1,1,-1 };
@@ -46,8 +62,6 @@ private:
 
 	Point3D start_location;
 	Point3D staging_location;
-	int n_step;
-	bool initial_build;
 	
 #pragma endregion
 
@@ -66,8 +80,6 @@ private:
     bool TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion);
     bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
     
-	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
-
     bool TryBuildProbe();
     //An estimate of how many workers we should have based on what buildings we have
     int GetExpectedWorkers(UNIT_TYPEID vespene_building_type);
@@ -90,9 +102,9 @@ private:
 
 #pragma endregion
 
-#pragma region Buil structure functions
+#pragma region Build structure functions
 
-	//bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
+	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
 	bool TryBuildForge();
 	bool TryBuildCyberneticsCore();
 	bool TryBuildAssimilator();
@@ -106,7 +118,7 @@ private:
 	bool TryBuildStargate();
 	bool TryBuildTemplarArchives();
 	bool TryBuildTwilightCouncil();
-	void TryBuildWarpGate();
+	bool TryBuildWarpGate();
 	bool TryBuildShieldBattery();
 	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
@@ -127,16 +139,7 @@ private:
 #pragma endregion
 
 #pragma region strategy
-    std::vector<const Unit*> enemy_units;
-    std::vector<const Unit*> enemy_bases;
-    std::vector<const Unit*> scouts;
-	std::vector<sc2::Point2D> visitedLocations;
-    std::vector<Point3D> expansions;
-    std::vector<Point2D> base_locations;
-    const Unit* scouting_probe = nullptr;
-    int target_worker_count = 15;
-	int max_colossus_count = 10;
-	int max_stalker_count = 10;
+
 	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);
     
 	void TrySendScouts();
@@ -144,7 +147,8 @@ private:
 	sc2::Point2D GetScoutMoveLocation();
 	void MoveScouts();
 	void SendHarassing(const sc2::Unit *base);
-	void CheckScoutsAlive();
+	void TrySendHarassing(const sc2::Unit *base);
+	void CheckIfAlive(int idetifier);
 
 #pragma endregion
 
@@ -155,7 +159,7 @@ private:
 	vector<Point2D> FindRamp(Point3D centre, int range);
 	Point2D FindNearestRampPoint(const Unit* centre);
 	vector<Point2D> CalculatePlacableRamp(const Unit* centre);
-	bool IsNextToClif(const Point2D location);
+	bool IsNextToCliff(const Point2D location);
 
 #pragma endregion
 
@@ -165,9 +169,7 @@ private:
 	void ManageArmy();
 	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);
 	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // TODO
-	bool BuildAdaptiveUnit();
-
-	void BuildOrder();
+	bool BuildAdaptiveUnit(const Unit* reference_unit);
 };
 
 #endif
