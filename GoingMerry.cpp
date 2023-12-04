@@ -1794,7 +1794,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     //      27      2:08      Warp Gate Research
     if (gateway_count == 2 &&
         cybernetics_count > 0 &&
-        warpgate_reasearched == false) {
+        warpgate_researched == false) {
         for (const auto& gateway : gateways) {
             if (!gateway->orders.empty()) {
                 Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateway);
@@ -2282,7 +2282,7 @@ bool GoingMerry::TryBuildArmy()
     }
 
     // After warpgate is researched
-    if (warpgate_reasearched && num_warpgate > 0)
+    if (warpgate_researched && num_warpgate > 0)
     {
         if (observation->GetMinerals() > 1000 && observation->GetVespene() < 200)
         {
