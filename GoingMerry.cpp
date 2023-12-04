@@ -1000,7 +1000,7 @@ bool GoingMerry::TryBuildGateway()
     size_t num_gateway = CountUnitType(UNIT_TYPEID::PROTOSS_GATEWAY);
     size_t num_base = CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS);
 
-    if (num_gateway < (num_base * 3))
+    if ((num_gateway < (num_base * 3)) && (num_gateway < 20))
     {
         if (!warpgate_researched)
         {
@@ -2178,7 +2178,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         twilight_count == 1 &&
         cannon_count <= (base_count * 5) &&
         battery_count <= (base_count * 3)) {
-        if (cannon_count < (base_count * 6)) {
+        if (cannon_count < (base_count * 5)) {
             if (TryBuildPhotonCannon()) {
                 //std::cout << "CANNON x5 7:58" << std::endl;
             }
