@@ -1843,9 +1843,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
        battery_count >= 3){
         
         //      62      5:35      Nexus
-//        if(TryBuildExpansionNexus()){
-//            std::cout<<"BASE 3 5:35"<<std::endl;
-//        }
+        if(TryBuildExpansionNexus()){
+            std::cout<<"BASE 3 5:35"<<std::endl;
+        }
     }
     
     //      64      5:53      Colossus (Chrono Boost)
