@@ -41,7 +41,7 @@ void printStats(int* stats, int n)
 
 int main(int argc, char* argv[]) {
 
-    RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
+//    RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
     
     // RunBot doesn't work for me, I use below instead (sam)
     //  -------------------------------------------------
