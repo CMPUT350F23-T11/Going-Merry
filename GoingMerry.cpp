@@ -1697,7 +1697,7 @@ void GoingMerry::TrySendScouts()
     if (enemy_bases.size() > 0) // only send harass if an enemy base is found
     {
         const sc2::Unit *&base = sc2::GetRandomEntry(enemy_bases);;
-//        TrySendHarassing(base);
+        TrySendHarassing(base);
     }
 
     if (scouts.size() == num_scouts) // if a pair of scouts available send to harass or scout
@@ -1756,6 +1756,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             //std::cout<<"GATEWAY 1 0:40"<<std::endl;
         }
     }
+    
+    if ((gateway_count > 0 || warpgate_count > 0) && (CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < 10)){
+        TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+    }
 
     //      16      0:48      Assimilator
     //      17      0:58      Assimilator
@@ -1790,11 +1794,15 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             //std::cout<<"CYBERNETICS 1 1:28"<<std::endl;
         }
     }
+    if((gateway_count > 0 || warpgate_count > 0) && (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) < 10)){
+        TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
+    }
 
+    //      23      2:02      Stalkers x2
     //      27      2:08      Warp Gate Research
     if (gateway_count == 2 &&
         cybernetics_count > 0 &&
-        warpgate_reasearched == false) {
+        warpgate_researched == false) {
         for (const auto& gateway : gateways) {
             if (!gateway->orders.empty()) {
                 Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateway);
@@ -2282,7 +2290,7 @@ bool GoingMerry::TryBuildArmy()
     }
 
     // After warpgate is researched
-    if (warpgate_reasearched && num_warpgate > 0)
+    if (warpgate_researched && num_warpgate > 0)
     {
         if (observation->GetMinerals() > 1000 && observation->GetVespene() < 200)
         {
@@ -2399,7 +2407,7 @@ void GoingMerry::ManageArmy()
             if (army.size() > 10 && num_colossus > 1 && num_immortals > 2)
             {
                 //cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
-//                AttackWithUnit(unit, observation, target_enemy->pos);
+                AttackWithUnit(unit, observation, target_enemy->pos);
             }
             else
             {
