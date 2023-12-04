@@ -141,7 +141,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
             const ObservationInterface* observation = Observation();
             Units bases = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
 
-            if (!warpgate_reasearched)
+            if (!warpgate_researched)
             {
                 Actions()->UnitCommand(unit, ABILITY_ID::RESEARCH_WARPGATE);
                 OnUpgradeCompleted(UPGRADE_ID::WARPGATERESEARCH);
@@ -167,7 +167,7 @@ void GoingMerry::OnUpgradeCompleted(UpgradeID upgrade)
     {
         case UPGRADE_ID::WARPGATERESEARCH:
         {
-            warpgate_reasearched = true;
+            warpgate_researched = true;
         }
         case UPGRADE_ID::EXTENDEDTHERMALLANCE:
         {
@@ -954,7 +954,7 @@ bool GoingMerry::TryBuildFleetBeacon()
 
 bool GoingMerry::TryBuildGateway()
 {
-    if (!warpgate_reasearched)
+    if (!warpgate_researched)
     {
         return TryBuildStructureNearPylon(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE);
     }
@@ -1195,7 +1195,7 @@ bool GoingMerry::TryBuildWarpGate()
     bool gateway_morphed = false;
     Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
 
-    if (warpgate_reasearched)
+    if (warpgate_researched)
     {
         for (const auto& gateway : gateways)
         {
@@ -1796,7 +1796,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     //      27      2:08      Warp Gate Research
     if(gateway_count == 2 &&
        cybernetics_count > 0 &&
-       warpgate_reasearched == false){
+       warpgate_researched == false){
         for(const auto& gateway : gateways){
             if(!gateway->orders.empty()){
                 Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOST, gateway);
@@ -1810,7 +1810,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     if (gateway_count == 2 &&
         cybernetics_count > 0 &&
-        warp_upgrade_complete == true &&
+        warpgate_researched == true &&
         gateway_count > warpgate_count) {
 
         if (TryBuildWarpGate())
@@ -2213,7 +2213,7 @@ bool GoingMerry::TryBuildArmy()
     }
 
     // After warpgate is researched
-    if (warpgate_reasearched && CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) > 0)
+    if (warpgate_researched && CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE) > 0)
     {
         if (observation->GetMinerals() > 1000 && observation->GetVespene() < 200)
         {
@@ -2326,7 +2326,7 @@ void GoingMerry::ManageArmy()
             if (army.size() > 10 && (num_colossus > 1 || num_immortals > 2))
             {
                 //cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
-//                AttackWithUnit(unit, observation, target_enemy->pos);
+                AttackWithUnit(unit, observation, target_enemy->pos);
             }
             else
             {
