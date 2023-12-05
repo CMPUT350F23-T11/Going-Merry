@@ -7,6 +7,7 @@
 
 #include "GoingMerry.h"
 #include "LadderInterface.h"
+#include <bits.h>
 
 using namespace sc2;
 using namespace std;
@@ -24,17 +25,17 @@ void getStats(vector<int> results, int* stats)
     }
 }
 
-void printStats(int* stats, int n)
+void printStats(int* stats, int n, int num_games)
 {
-    float win_percent = (float)stats[0] / (float)100;
-    float loss_percent = (float)stats[1] / (float)100;
-    float draws_percent = (float)stats[2] / (float)100;
-    float undecided_percent = (float)stats[3] / (float)100;
+    float win_percent = (float)stats[0] / (float)num_games;
+    float loss_percent = (float)stats[1] / (float)num_games;
+    float draws_percent = (float)stats[2] / (float)num_games;
+    float undecided_percent = (float)stats[3] / (float)num_games;
 
-    cout << "Number of wins: " << stats[0] << ", Win percentage: " << win_percent << "%" << endl;
-    cout << "Number of losses: " << stats[1] << ", Loss percentage: " <<  loss_percent << "%" << endl;
-    cout << "Number of draws: " << stats[2] << ", Draw percentage: " << draws_percent << "%" << endl;
-    cout << "Number of undecided: " << stats[3] << ", Undecided percentage: " << undecided_percent << "%" << endl;
+    cout << "Number of wins: " << stats[0] << ", Win percentage: " << win_percent*100 << "%" << endl;
+    cout << "Number of losses: " << stats[1] << ", Loss percentage: " <<  loss_percent*100 << "%" << endl;
+    cout << "Number of draws: " << stats[2] << ", Draw percentage: " << draws_percent*100 << "%" << endl;
+    cout << "Number of undecided: " << stats[3] << ", Undecided percentage: " << undecided_percent*100 << "%" << endl;
 }
 
 #pragma endregion
@@ -61,35 +62,40 @@ int main(int argc, char* argv[]) {
      //}
     // -------------------------------------------------
     
-    // Code for report metrics
-    // To run tests, uncomment lines 147-158 in LadderInterface.h and
-    // comment out lines 182-186 in sc2_replay_observer.cc at cpp-sc2/src/sc2api/.
+     // Code for report metrics
+     // To run tests, uncomment lines 147-158 in LadderInterface.h and
+     // comment out lines 182-186 in sc2_replay_observer.cc at cpp-sc2/src/sc2api/.
 
-    // vector<int> results;
-    // for (int i = 0; i < 100; ++i)
-    // {
-    //     RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
+     vector<int> results;
+     time_t start, end;
 
-    //     ReplayObserver replay_observer;
-    //     ReplayControlInterface *replay_control =  replay_observer.ReplayControl();
+     time(&start);
+     ios_base::sync_with_stdio(false);
+     int i;
 
-    //     InterfaceSettings settings;
-    //     settings.use_feature_layers = false;
-    //     settings.use_render = false;
+     //for (i = 0; i < 10; ++i)
+     //{
+     //    RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
+     //    //ReplayObserver replay_observer;
+     //    //ReplayControlInterface *replay_control =  replay_observer.ReplayControl();
+     //    //InterfaceSettings settings;
+     //    //settings.use_feature_layers = false;
+     //    //settings.use_render = false;
+     //    //replay_control->LoadReplay("C:/SC2/Replays/001.SC2Replay", settings, 1, false);
+     //    //ReplayInfo replay_info = replay_control->GetReplayInfo();
+     //    //ReplayPlayerInfo player_info;
+     //    //replay_info.GetPlayerInfo(player_info, 1);
+     //    //cout << "Game " << i+1 << " Result: " << player_info.game_result << endl;  // 0, 1, 2, 3: Win, Loss, Tie, Undecided
+     //    //results.push_back(player_info.game_result);
+     //}
 
-    //     replay_control->LoadReplay("C:/SC2/Replays/001.SC2Replay", settings, 1, false);
-    //     ReplayInfo replay_info = replay_control->GetReplayInfo();
-    //     ReplayPlayerInfo player_info;
-    //     replay_info.GetPlayerInfo(player_info, 1);
+     time(&end);
+     double time_taken = double(end - start);
+     cout << "Execution time of " << i << " test(s): " << fixed << ((float)time_taken/(float)60) << " minutes" << endl;
 
-    //     cout << "Game " << i+1 << " Result: " << player_info.game_result << endl;  // 0, 1, 2, 3: Win, Loss, Tie, Undecided
-    //     results.push_back(player_info.game_result);
-    // }
-
-    // int stats[4] = { 0, 0, 0, 0 };
-    // getStats(results, stats);
-
-    // printStats(stats, 4);
+     int stats[4] = { 0, 0, 0, 0 };
+     getStats(results, stats);
+     printStats(stats, 4, i);
 
 	return 0;
 }
