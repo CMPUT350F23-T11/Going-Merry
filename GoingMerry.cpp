@@ -143,7 +143,7 @@ void GoingMerry::OnStep()
         }
     }
 
-    if (current_supply > (supply_cap - 20))
+    if ((current_supply > (supply_cap - 8)) && (supply_cap + 8 < 201))
     {
         TryBuildPylon();
     }
@@ -156,16 +156,11 @@ void GoingMerry::OnStep()
 
     ManageUpgrades();
 
-    BuildOrder(ingame_time, current_supply, current_minerals, current_gas);
-
     TryBuildArmy();  // Standard army build
 
     //TryBuildAdaptiveArmy();  // Adaptive army build
 
-    if (TryBuildPylon())
-    {
-        return;
-    }
+    BuildOrder(ingame_time, current_supply, current_minerals, current_gas);
 
     if (TryBuildProbe()) {
         return;
@@ -945,14 +940,9 @@ bool GoingMerry::TryBuildGas(AbilityID build_ability, UnitTypeID worker_type, Po
 
 bool GoingMerry::TryBuildPylon() {
     const ObservationInterface* observation = Observation();
-    // 23 pylons max
+    // 25 pylons max
     Units pylons = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_PYLON));
-    if(pylons.size() > 25){
-        return false;
-    }
-
-//     If we are not supply capped, don't build a supply depot.
-    if (observation->GetFoodUsed() < observation->GetFoodCap() - 1) {
+    if(pylons.size() > 24){
         return false;
     }
 
@@ -1718,7 +1708,7 @@ void GoingMerry::TrySendHarassing(const sc2::Unit *base)
 
     Units army = observation->GetUnits(Unit::Alliance::Self, IsArmy(observation));
     
-    if ((harassers.size() == num_harassers) && fullShields)
+    if ((harassers.size() == num_harassers) && fullShields && army.size() > 15)
     {
         SendHarassing(base);
     }
@@ -2100,9 +2090,8 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         forge_count >= 1 &&
         twilight_count == 1 &&
         stargate_count == 0) {
-
         if (TryBuildStargate()) {
-                        std::cout<<"STARGATE"<<std::endl;
+                        //std::cout<<"STARGATE"<<std::endl;
         }
 
         if (cannon_count < max_cannon_count) {
