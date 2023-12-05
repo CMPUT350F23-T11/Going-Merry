@@ -2626,7 +2626,7 @@ void GoingMerry::ManageArmy()
 
         for (const auto& unit : army) {
 
-            if (unit->shield < (unit->shield_max/4))
+            if (unit->shield < 10)
             {
                 const Unit *shield_battery = nullptr;
 
@@ -2661,15 +2661,18 @@ void GoingMerry::ManageArmy()
                 continue;
             }
 
-            if ((army.size() > 20) && ((num_colossus > 2 || num_voidray > 1) || (num_colossus > 4) || (num_immortals >= max_immortal_count && num_colossus > 2)))
+            if (unit->shield > (unit->shield_max - 15))
             {
-                //cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
-                AttackWithUnit(unit, observation, target_enemy->pos);
-            }
-            // If supply cap reached and current supply used is 195
-            else if (observation->GetFoodUsed() > 180)
-            {
-                AttackWithUnit(unit, observation, target_enemy->pos);
+                if ((army.size() > 20) && ((num_colossus > 2 || num_voidray > 1) || (num_colossus > 4) || (num_immortals >= max_immortal_count && num_colossus > 2)))
+                {
+                    //cout << "Attacking enemy at (" << target_enemy->pos.x << "," << target_enemy->pos.y << ")" << endl;
+                    AttackWithUnit(unit, observation, target_enemy->pos);
+                }
+                // If supply cap reached and current supply used is 195
+                else if (observation->GetFoodUsed() > 180)
+                {
+                    AttackWithUnit(unit, observation, target_enemy->pos);
+                }
             }
             else
             {

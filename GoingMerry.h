@@ -52,8 +52,8 @@ private:
 	int num_scouts = 2;
 	int num_harassers = 10;
 	int target_worker_count = 15;
-	int max_zealot_count = 20;  // Supply: 2
-	int max_stalker_count = 20;  // Supply: 2
+	int max_zealot_count = 15;  // Supply: 2
+	int max_stalker_count = 15;  // Supply: 2
 	int max_immortal_count = 10;  // Supply: 4
 	int max_colossus_count = 6;  // Supply: 6
 	int max_voidray_count = 6;  // Supply: 4
