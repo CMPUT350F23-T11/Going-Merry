@@ -1420,6 +1420,8 @@ bool GoingMerry::TryBuildPhotonCannon()
        return false;
 
     Units nux = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
+    if (nux.size() == 0)
+        return false;
 
     auto position = CalculatePlacableRamp(nux.front());
     if (position.size() == 0)
