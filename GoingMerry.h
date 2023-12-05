@@ -55,15 +55,15 @@ private:
 	int num_harassers = 10;
 	int target_worker_count = 15;
 	int max_zealot_count = 15;  // Supply: 2
-	int max_stalker_count = 15;  // Supply: 2
-	int max_immortal_count = 10;  // Supply: 4
-	int max_colossus_count = 6;  // Supply: 6
-	int max_voidray_count = 6;  // Supply: 4
-	int max_phoenix_count = 10;  // Supply: 2
+	int max_stalker_count = 12;  // Supply: 2
+	int max_immortal_count = 8;  // Supply: 4
+	int max_colossus_count = 5;  // Supply: 6
+	int max_voidray_count = 5;  // Supply: 4
+	int max_phoenix_count = 5;  // Supply: 2
 	int max_archon_count = 10;  // Supply: 4
 	int max_cannon_count = 10;
 	int max_observer_count = 1;
-	int max_sentry_count = 2;
+	int max_sentry_count = 2;  // Supply: 2
 		
 	vector<int> directionX{ 1,-1,0,0,1,1,-1,-1 };
 	vector<int> directionY{ 0,0,1,-1,1,-1,1,-1 };

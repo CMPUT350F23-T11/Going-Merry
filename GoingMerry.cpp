@@ -176,17 +176,17 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
 {
     switch (unit->unit_type.ToType())
     {
-        case UNIT_TYPEID::PROTOSS_NEXUS:
-        {            
-            // Sometimes creates 1 or 2 extra workers when another worker is busy building something
-            Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-            for (const auto& base : bases){
-                if (base->assigned_harvesters <= base->ideal_harvesters && base->build_progress == 1){
-                    Actions()->UnitCommand(base, ABILITY_ID::TRAIN_PROBE);
-                }
-            }
-            break;
-        }
+        //case UNIT_TYPEID::PROTOSS_NEXUS:
+        //{            
+        //    // Sometimes creates 1 or 2 extra workers when another worker is busy building something
+        //    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+        //    for (const auto& base : bases){
+        //        if (base->assigned_harvesters <= base->ideal_harvesters && base->build_progress == 1){
+        //            Actions()->UnitCommand(base, ABILITY_ID::TRAIN_PROBE);
+        //        }
+        //    }
+        //    break;
+        //}
         case UNIT_TYPEID::PROTOSS_PROBE: {
             MineIdleWorkers(unit, ABILITY_ID::HARVEST_GATHER, UNIT_TYPEID:: PROTOSS_ASSIMILATOR);
             break;
@@ -1105,6 +1105,7 @@ bool GoingMerry::TryBuildExpansionNexus()
             }
         }
     }
+
     if(bases.size() == 1 && cybernetics_count < 1){
         return false;
     }
@@ -1113,28 +1114,18 @@ bool GoingMerry::TryBuildExpansionNexus()
         return false;
     }
 
-    for (const auto& assimilator : assimilators)
-    {
-        if (assimilator->assigned_harvesters < assimilator->ideal_harvesters)
-        {
-            return false;
-        }
+    //Don't have more active bases than we can provide workers for
+    if (GetExpectedWorkers(UNIT_TYPEID::PROTOSS_ASSIMILATOR) > max_worker_count_) {
+        return false;
     }
-
-    for (const auto& base : bases)
-    {
-        if (base->assigned_harvesters < base->ideal_harvesters)
-        {
-            return false;
-        }
+    // If we have extra workers around, try and build another nexus.
+    if (GetExpectedWorkers(UNIT_TYPEID::PROTOSS_ASSIMILATOR) < observation->GetFoodWorkers() - 16) {
+        return TryExpandBase(ABILITY_ID::BUILD_NEXUS, UNIT_TYPEID::PROTOSS_PROBE);
     }
-    
     //Only build another nexus if we are floating extra minerals
     if (observation->GetMinerals() > CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) * 400) {
         return TryExpandBase(ABILITY_ID::BUILD_NEXUS, UNIT_TYPEID::PROTOSS_PROBE);
     }
-
-    return false;
 }
 
 bool GoingMerry::TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type)
