@@ -158,9 +158,9 @@ void GoingMerry::OnStep()
 
     BuildOrder(ingame_time, current_supply, current_minerals, current_gas);
 
-    TryBuildArmy();  // Standard army build
+    //TryBuildArmy();  // Standard army build
 
-    //TryBuildAdaptiveArmy();  // Adaptive army build
+    TryBuildAdaptiveArmy();  // Adaptive army build
 
     if (TryBuildProbe()) {
         return;
@@ -1870,16 +1870,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
             //std::cout<<"GATEWAY 1 0:40"<<std::endl;
         }
     }
-    
-    if ((gateway_count > 0 || warpgate_count > 0) && CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < 10){
-        if(gateway_count > 0){
-            TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
-        }
-        else{
-            TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
-        }
-        
-    }
 
     //      16      0:48      Assimilator
     //      17      0:58      Assimilator
@@ -1913,16 +1903,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         if (TryBuildCyberneticsCore()) {
             //std::cout<<"CYBERNETICS 1 1:28"<<std::endl;
         }
-    }
-    
-    if ((gateway_count > 0 || warpgate_count > 0) && CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) < 10){
-        if(gateway_count > 0){
-            TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
-        }
-        else{
-            TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
-        }
-        
     }
 
     //      27      2:08      Warp Gate Research
@@ -2302,19 +2282,19 @@ bool GoingMerry::TryBuildArmy()
         Actions()->UnitCommand(merge_templars, ABILITY_ID::MORPH_ARCHON);
     }
     
-    if (num_roboticsfacility < 1)
+    if (num_stargate < 1)
     {
         if (num_stalker < max_stalker_count)
         {
             if (num_warpgate > 0)
             {
-                return TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+                TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
             }
             else
             {
                 if (num_gateway > 0 && num_cyberneticscore > 0)
                 {
-                    return TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
+                    TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
                 }
             }
         }
@@ -2323,13 +2303,13 @@ bool GoingMerry::TryBuildArmy()
         {
             if (num_warpgate > 0)
             {
-                return TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+                TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
             }
             else
             {
                 if (num_gateway > 0)
                 {
-                    return TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+                    TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
                 }
             }
         }
@@ -2341,13 +2321,13 @@ bool GoingMerry::TryBuildArmy()
         {
             if (num_warpgate > 0)
             {
-                return TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+                TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
             }
             else
             {
                 if (num_gateway > 0 && num_cyberneticscore > 0)
                 {
-                    return TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
+                    TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
                 }
             }
         }
@@ -2357,13 +2337,13 @@ bool GoingMerry::TryBuildArmy()
         {
             if (num_warpgate > 0)
             {
-                return TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+                TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
             }
             else
             {
                 if (num_gateway > 0)
                 {
-                    return TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+                    TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
                 }
             }
         }
@@ -2373,7 +2353,7 @@ bool GoingMerry::TryBuildArmy()
     if (warpgate_researched && num_warpgate > 0)
     {
         if (num_sentry < max_sentry_count) {
-            return TryWarpInUnit(ABILITY_ID::TRAINWARP_SENTRY);
+            TryWarpInUnit(ABILITY_ID::TRAINWARP_SENTRY);
         }
     }
 
