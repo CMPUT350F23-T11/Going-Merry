@@ -48,6 +48,8 @@ private:
 	std::vector<Point3D> expansions;
 	std::vector<Point2D> base_locations;
 
+	bool startHarass = false;
+
 	const Unit* scouting_probe = nullptr;
 	int num_scouts = 2;
 	int num_harassers = 10;
