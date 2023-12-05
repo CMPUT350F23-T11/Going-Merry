@@ -61,6 +61,7 @@ private:
 	int max_archon_count = 10;  // Supply: 4
 	int max_cannon_count = 10;
 	int max_observer_count = 1;
+	int max_sentry_count = 2;
 		
 	vector<int> directionX{ 1,-1,0,0,1,1,-1,-1 };
 	vector<int> directionY{ 0,0,1,-1,1,-1,1,-1 };

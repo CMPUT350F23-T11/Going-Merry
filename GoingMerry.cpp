@@ -156,11 +156,11 @@ void GoingMerry::OnStep()
 
     ManageUpgrades();
 
+    BuildOrder(ingame_time, current_supply, current_minerals, current_gas);
+
     TryBuildArmy();  // Standard army build
 
     //TryBuildAdaptiveArmy();  // Adaptive army build
-
-    BuildOrder(ingame_time, current_supply, current_minerals, current_gas);
 
     if (TryBuildProbe()) {
         return;
@@ -2252,6 +2252,7 @@ bool GoingMerry::TryBuildArmy()
     size_t num_hightemplar = CountUnitType(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR);
     size_t num_archon = CountUnitType(UNIT_TYPEID::PROTOSS_ARCHON);
     size_t num_observer = CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER);
+    size_t num_sentry = CountUnitType(UNIT_TYPEID::PROTOSS_SENTRY);
 
     // Get production structure counts
     size_t num_bases = CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS);
@@ -2378,6 +2379,9 @@ bool GoingMerry::TryBuildArmy()
         {
             return false;
         }
+        if (num_sentry < max_sentry_count) {
+            return TryWarpInUnit(ABILITY_ID::TRAINWARP_SENTRY);
+        }
         if (num_hightemplar < 2 && num_archon < max_archon_count)
         {
             return TryWarpInUnit(ABILITY_ID::TRAINWARP_HIGHTEMPLAR);
@@ -2430,6 +2434,8 @@ bool GoingMerry::TryBuildAdaptiveArmy()
     size_t num_hightemplar = CountUnitType(UNIT_TYPEID::PROTOSS_HIGHTEMPLAR);
     size_t num_archon = CountUnitType(UNIT_TYPEID::PROTOSS_ARCHON);
     size_t num_observer = CountUnitType(UNIT_TYPEID::PROTOSS_OBSERVER);
+    size_t num_sentry = CountUnitType(UNIT_TYPEID::PROTOSS_SENTRY);
+
 
     // Get production structure counts
     size_t num_bases = CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS);
@@ -2551,6 +2557,9 @@ bool GoingMerry::TryBuildAdaptiveArmy()
         if (num_adept > max_stalker_count)
         {
             return false;
+        }
+        if (num_sentry < max_sentry_count) {
+            return TryWarpInUnit(ABILITY_ID::TRAINWARP_SENTRY);
         }
         if (num_hightemplar < 2 && num_archon < max_archon_count)
         {
@@ -2723,6 +2732,24 @@ void GoingMerry::ManageArmy()
                                     blink_location = unit->pos - diff * 7.0f;
                                 }
                                 Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_BLINK, blink_location);
+                            }
+                        }
+                    }
+                    break;
+                }
+                //Turns on guardian shell when close to an enemy
+                case (UNIT_TYPEID::PROTOSS_SENTRY): {
+                    if (!unit->orders.empty()) {
+                        if (unit->orders.front().ability_id == ABILITY_ID::ATTACK) {
+                            float distance = std::numeric_limits<float>::max();
+                            for (const auto& u : enemy_units) {
+                                float d = Distance2D(u->pos, unit->pos);
+                                if (d < distance) {
+                                    distance = d;
+                                }
+                            }
+                            if (distance < 6 && unit->energy >= 75) {
+                                Actions()->UnitCommand(unit, ABILITY_ID::EFFECT_GUARDIANSHIELD);
                             }
                         }
                     }
