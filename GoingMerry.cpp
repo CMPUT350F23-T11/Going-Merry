@@ -1126,6 +1126,8 @@ bool GoingMerry::TryBuildExpansionNexus()
     if (observation->GetMinerals() > CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS) * 400) {
         return TryExpandBase(ABILITY_ID::BUILD_NEXUS, UNIT_TYPEID::PROTOSS_PROBE);
     }
+
+    return false;
 }
 
 bool GoingMerry::TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type)
@@ -2655,7 +2657,7 @@ void GoingMerry::ManageArmy()
     size_t num_voidray = CountUnitType(UNIT_TYPEID::PROTOSS_VOIDRAY);
 
 
-    //There are no enemies yet, and we don't have a big army
+    //There are no enemies yet
     if (visible_enemies.empty()) {
 
         for (const auto& unit : army)
@@ -3054,7 +3056,7 @@ bool GoingMerry::BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID 
             }
             else
             {
-                if (num_ultralisk > 4)
+                if (num_ultralisk > 2)
                 {
                     if (num_archon < (max_archon_count + (max_phoenix_count / 2)))
                     {
