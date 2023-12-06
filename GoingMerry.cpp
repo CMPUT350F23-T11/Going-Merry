@@ -66,7 +66,7 @@ void GoingMerry::OnGameStart() {
     base_locations.push_back(base_loc);
 
     srand(time(0)); // use current time as seed for random generator
-    debug = true;  // Set debug mode
+    debug = false;  // Set debug mode
     return; 
 }
 
