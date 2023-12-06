@@ -32,6 +32,7 @@ private:
 
 	int enemy_race = -1;  // -1: Not yet determined, 0: Protoss, 1: Terran, 2: Zerg
 	bool enemy_air_units = false;
+	bool foundBase = false;
 
 	const ObservationInterface* observation;
 	bool warpgate_researched = false;
@@ -48,9 +49,11 @@ private:
 	std::vector<Point3D> expansions;
 	std::vector<Point2D> base_locations;
 
+
 	bool startHarass = false;
 
 	const Unit* scouting_probe = nullptr;
+	int possible_starts_visited = 0;
 	int num_scouts = 2;
 	int num_harassers = 10;
 	int target_worker_count = 15;

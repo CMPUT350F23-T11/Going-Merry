@@ -80,7 +80,8 @@ void GoingMerry::OnGameStart() {
     Units base = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
     Point2D base_loc(base.front()->pos.x, base.front()->pos.y);
     base_locations.push_back(base_loc);
-    
+    cout << "Number of possible enemy starts: " << game_info.enemy_start_locations.size() << endl;
+
     srand(time(0)); // use current time as seed for random generator
     return; 
 }
@@ -1545,70 +1546,90 @@ sc2::Point2D GoingMerry::GetScoutMoveLocation()
 {
     const sc2::GameInfo& game_info = Observation()->GetGameInfo();
 
-    // Define boundaries for the random location
-    float minX = game_info.playable_min.x;
-    float minY = game_info.playable_min.y;
-    float maxX = game_info.playable_max.x;
-    float maxY = game_info.playable_max.y;
-
-    // Our base
-    const sc2::Units& base = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
-
-    // Get all mineral fields
-    sc2::Units minerals = Observation()->GetUnits(Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
-
-    // Set maximum attempts to avoid an infinite loop
-    const int maxAttempts = 10;
-    int attemptCount = 0;
-
-    // Generate random coordinates near mineral fields
     Point2D target_location;
-    Point2D exact_location;
-    float distFromScout = 0;
-    float distFromBase = 0;
-
-    while (distFromScout < 5.0f && distFromBase < 10.0f && attemptCount < maxAttempts)
+    
+    // Check if the target_location is not in the list of previously visited locations
+    if (!foundBase && !game_info.enemy_start_locations.empty() && possible_starts_visited < game_info.enemy_start_locations.size())
     {
-        if (minerals.empty()) 
+        for (const auto& location : game_info.enemy_start_locations)
         {
-            // If no mineral fields are found, revert to the original random location logic
-            float randomX = sc2::GetRandomInteger(minX, maxX - 1) + sc2::GetRandomFraction();
-            float randomY = sc2::GetRandomInteger(minY, maxY - 1) + sc2::GetRandomFraction();
-            target_location = sc2::Point2D(randomX, randomY);
-            exact_location = target_location;
-        } 
-        else 
-        {
-            // Choose a random mineral field
-            const sc2::Unit *&randomMineral = sc2::GetRandomEntry(minerals);
-
-            // Generate random coordinates near the chosen mineral field
-            float offsetRadius = 5.0f;  // You can adjust this radius as needed
-            float randomOffsetX = sc2::GetRandomInteger(-offsetRadius, offsetRadius) + sc2::GetRandomFraction();
-            float randomOffsetY = sc2::GetRandomInteger(-offsetRadius, offsetRadius) + sc2::GetRandomFraction();
-           
-            target_location = randomMineral->pos + sc2::Point2D(randomOffsetX, randomOffsetY);
-            exact_location = randomMineral->pos;
+            if ((std::find(visitedLocations.begin(), visitedLocations.end(), location) == visitedLocations.end()))
+            {
+                target_location = location;
+                cout << "Done" << endl;
+                // Update the list of visited locations
+                visitedLocations.push_back(target_location);
+                possible_starts_visited += 1;
+                return target_location;
+            }
         }
-
-        // Check if the target_location is not in the list of previously visited locations
-        if (std::find(visitedLocations.begin(), visitedLocations.end(), exact_location) == visitedLocations.end())
-        {
-            // Update the list of visited locations
-            visitedLocations.push_back(exact_location);
-
-            // Calculate distances
-            distFromScout = Distance2D(scouts[0]->pos, target_location);
-            distFromBase = Distance2D(base[0]->pos, target_location);
-        }
-
-        attemptCount++;
     }
-
-    // Clear the list if it becomes too large to avoid excessive memory usage
-    if ((visitedLocations.size() > 100) || (visitedLocations.size() >= minerals.size() && minerals.size() > 0))
+    else
     {
-        visitedLocations.clear();
+        // Define boundaries for the random location
+        float minX = game_info.playable_min.x;
+        float minY = game_info.playable_min.y;
+        float maxX = game_info.playable_max.x;
+        float maxY = game_info.playable_max.y;
+
+        // Our base
+        const sc2::Units& base = Observation()->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_NEXUS));
+
+        // Get all mineral fields
+        sc2::Units minerals = Observation()->GetUnits(Unit::Alliance::Neutral, IsUnit(UNIT_TYPEID::NEUTRAL_MINERALFIELD));
+
+        // Set maximum attempts to avoid an infinite loop
+        const int maxAttempts = 10;
+        int attemptCount = 0;
+
+        // Generate random coordinates near mineral fields
+        Point2D exact_location;
+        float distFromScout = 0;
+        float distFromBase = 0;
+
+        while (distFromScout < 5.0f && distFromBase < 10.0f && attemptCount < maxAttempts)
+        {
+            if (minerals.empty())
+            {
+                // If no mineral fields are found, revert to the original random location logic
+                float randomX = sc2::GetRandomInteger(minX, maxX - 1) + sc2::GetRandomFraction();
+                float randomY = sc2::GetRandomInteger(minY, maxY - 1) + sc2::GetRandomFraction();
+                target_location = sc2::Point2D(randomX, randomY);
+                exact_location = target_location;
+            }
+            else
+            {
+                // Choose a random mineral field
+                const sc2::Unit*& randomMineral = sc2::GetRandomEntry(minerals);
+
+                // Generate random coordinates near the chosen mineral field
+                float offsetRadius = 5.0f;  // You can adjust this radius as needed
+                float randomOffsetX = sc2::GetRandomInteger(-offsetRadius, offsetRadius) + sc2::GetRandomFraction();
+                float randomOffsetY = sc2::GetRandomInteger(-offsetRadius, offsetRadius) + sc2::GetRandomFraction();
+
+                target_location = randomMineral->pos + sc2::Point2D(randomOffsetX, randomOffsetY);
+                exact_location = randomMineral->pos;
+            }
+
+            // Check if the target_location is not in the list of previously visited locations
+            if (std::find(visitedLocations.begin(), visitedLocations.end(), exact_location) == visitedLocations.end())
+            {
+                // Update the list of visited locations
+                visitedLocations.push_back(exact_location);
+
+                // Calculate distances
+                distFromScout = Distance2D(scouts[0]->pos, target_location);
+                distFromBase = Distance2D(base[0]->pos, target_location);
+            }
+
+            attemptCount++;
+        }
+
+        // Clear the list if it becomes too large to avoid excessive memory usage
+        if ((visitedLocations.size() > 100) || (visitedLocations.size() >= minerals.size() && minerals.size() > 0))
+        {
+            visitedLocations.clear();
+        }
     }
 
     return target_location;
@@ -1637,19 +1658,22 @@ void GoingMerry::MoveScouts()
 void GoingMerry::SendScouting()
 {
     MoveScouts(); // move scouts to new location
-    const sc2::Units& cur_enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy); // check if any enemies are found
+    const sc2::Units& cur_enemy_units = Observation()->GetUnits(sc2::Unit::Alliance::Enemy, IsArmy(observation)); // check if any enemies are found
     bool found = false;
-    bool foundBase = false;
     const sc2::Unit *base;
 
     // add unit to either enemy_bases vector or enemy_units vector based on whether or not its the first time encountering it
-    for (auto cur : cur_enemy_units)
+    for (const auto &cur : cur_enemy_units)
     {
         found = false;
         if (!(cur->unit_type == sc2::UNIT_TYPEID::TERRAN_COMMANDCENTER ||
             cur->unit_type == sc2::UNIT_TYPEID::PROTOSS_NEXUS ||
             cur->unit_type == sc2::UNIT_TYPEID::ZERG_HATCHERY))
         {
+            if (cur->is_flying)
+            {
+                enemy_air_units = true;
+            }
             for (auto seen : enemy_units)
             {
                 if (seen->tag == cur->tag)
@@ -1659,12 +1683,12 @@ void GoingMerry::SendScouting()
             }
             if (!found)
             {
-                if (cur->is_flying && !(cur->unit_type==UNIT_TYPEID::ZERG_OVERLORD))
-                {
-                    enemy_air_units = true;
-                }
                 enemy_units.push_back(cur);
             }
+        }
+        else
+        {
+            foundBase = true;
         }
     }
 }

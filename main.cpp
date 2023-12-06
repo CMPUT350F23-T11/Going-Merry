@@ -44,58 +44,5 @@ int main(int argc, char* argv[]) {
 
     RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
     
-    // RunBot doesn't work for me, I use below instead (sam)
-    //  -------------------------------------------------
-    //Coordinator coordinator;
-    //coordinator.LoadSettings(argc, argv);
-
-     //GoingMerry bot;
-     //coordinator.SetParticipants({
-     //    CreateParticipant(Race::Protoss, &bot),
-     //    CreateComputer(Race::Zerg)
-     //});
-
-     //coordinator.LaunchStarcraft();
-     //coordinator.StartGame(sc2::kMapBelShirVestigeLE);
-
-     //while (coordinator.Update()) {
-     //}
-    // -------------------------------------------------
-    
-     // Code for report metrics
-     // To run tests, uncomment lines 147-158 in LadderInterface.h and
-     // comment out lines 182-186 in sc2_replay_observer.cc at cpp-sc2/src/sc2api/.
-
-     vector<int> results;
-     time_t start, end;
-
-     time(&start);
-     ios_base::sync_with_stdio(false);
-     int i;
-
-     //for (i = 0; i < 10; ++i)
-     //{
-     //    RunBot(argc, argv, new GoingMerry(), sc2::Race::Protoss);
-     //    //ReplayObserver replay_observer;
-     //    //ReplayControlInterface *replay_control =  replay_observer.ReplayControl();
-     //    //InterfaceSettings settings;
-     //    //settings.use_feature_layers = false;
-     //    //settings.use_render = false;
-     //    //replay_control->LoadReplay("C:/SC2/Replays/001.SC2Replay", settings, 1, false);
-     //    //ReplayInfo replay_info = replay_control->GetReplayInfo();
-     //    //ReplayPlayerInfo player_info;
-     //    //replay_info.GetPlayerInfo(player_info, 1);
-     //    //cout << "Game " << i+1 << " Result: " << player_info.game_result << endl;  // 0, 1, 2, 3: Win, Loss, Tie, Undecided
-     //    //results.push_back(player_info.game_result);
-     //}
-
-     time(&end);
-     double time_taken = double(end - start);
-     cout << "Execution time of " << i << " test(s): " << fixed << ((float)time_taken/(float)60) << " minutes" << endl;
-
-     int stats[4] = { 0, 0, 0, 0 };
-     getStats(results, stats);
-     printStats(stats, 4, i);
-
 	return 0;
 }
