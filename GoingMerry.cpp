@@ -789,7 +789,7 @@ bool GoingMerry::HavePylonNearby(Point2D& point)
     if (pylons.size() == 0)
         return false;
 
-    for (auto pylon : pylons)
+    for (const auto pylon : pylons)
     {
         //if (observation->GetUnit(pylon.tag)->unit_type != UNIT_TYPEID::PROTOSS_PYLON)
         //    continue;
@@ -804,28 +804,17 @@ bool GoingMerry::HavePylonNearby(Point2D& point)
 vector<Point2D> GoingMerry::GetOffSetPoints(Point2D point, UNIT_TYPEID unit_type) {
     vector<Point2D> offSetPoints;
     Point3D startLocation = observation->GetStartLocation();
-    vector<Point2D> Directions;
+    
+    for (int i = 0; i < 8; i++)
+    {
+        Point2D temp = Point2D(point.x + directionX[i], point.y + directionY[i]);
 
-    for (int i = -2; i < 3; i++) {
-        for (int j = -2; j < 3; j++) {
-            if (i == 0 && j == 0) {
-                continue;
-            }
-            Directions.push_back(Point2D(i, j));
+        if (observation->IsPlacable(temp) && startLocation.z - observation->TerrainHeight(temp) < 0.5) {
+            offSetPoints.push_back(temp);
         }
     }
 
-    for (auto direction : Directions) {
-        double x = point.x + direction.x;
-        double y = point.y + direction.y;
-
-        if (observation->IsPlacable(Point2D(x, y)) && startLocation.z - observation->TerrainHeight(Point2D(x, y)) < 0.5) {
-            offSetPoints.push_back(Point2D(x, y));
-
-        }
-    }
     return offSetPoints;
-
 }
 
 bool GoingMerry::HaveCannonNearby(Point2D& point)
@@ -1436,52 +1425,48 @@ bool GoingMerry::TryBuildPhotonCannon()
         return false;
 
     auto position = CalculatePlacableRamp(nux.front());
-    if (position.size() == 0)
-        return false;
 
-    for (auto pos : position)
+    if (position.size() != 0)
     {
-        if (HavePylonNearby(pos))
+        for (auto pos : position)
         {
-            auto temp = TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos);
-            if (temp)
+            if (HaveCannonNearby(pos))
+                continue;
+
+            if (HavePylonNearby(pos))
             {
-                return true;
+                if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos))
+                {
+                    cout << "successful " << pos.x << " : " << pos.y << endl;
+                    return true;
+                }
             }
             else
             {
-                continue;
+                auto closet = FindClostest(nux.front()->pos, position);
+                TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
             }
         }
-        else
+    }   
+
+    vector<Point2D> grids = CalculateGrid(start_location, 18);
+
+    Point2D farestEnemyBase = GetRandomEntry(game_info.enemy_start_locations);
+    for (auto temp : game_info.enemy_start_locations)
+    {
+        if (Distance2D(start_location, temp) >= Distance2D(start_location, farestEnemyBase))
         {
-            auto closet = FindClostest(nux.front()->pos, position);
-            auto temp = TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
-            return temp;
+            farestEnemyBase = temp;
         }
     }
 
-    vector<Point2D> grids = CalculateGrid(start_location, 20);
-
     for (auto grid : grids)
     {
-        bool flag = false;
-        for (auto temp : game_info.enemy_start_locations)
-        {
-            if (Distance2D(grid, temp) >= Distance2D(start_location, temp))
-            {
-                flag = true;
-                break;
-            }
-        }
-
-        if (flag)
-            continue;
-
         if (HaveCannonNearby(grid))
-        {
             continue;
-        }
+
+        if (Distance2D(grid, farestEnemyBase) > Distance2D(start_location, farestEnemyBase))
+            continue;
 
         if (observation->IsPlacable(grid) && IsNextToCliff(grid))
         {
@@ -1489,33 +1474,15 @@ bool GoingMerry::TryBuildPhotonCannon()
 
             for (auto point : points)
             {
-                if (HavePylonNearby(point))
-                {
-                    if (HaveCannonNearby(point))
-                    {
-                        continue;
-                    }
-
-                    if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point))
-                    {
-                        return true;
-                        
-                    }
-                }
-                else
+                if (!HavePylonNearby(point))
                 {
                     auto closest = FindClostest(start_location, points);
                     TryBuildStructure(ABILITY_ID::BUILD_PYLON, closest);
+                }
 
-                    if (HaveCannonNearby(point))
-                    {
-                        continue;
-                    }
-
-                    if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point))
-                    {
-                        return true;
-                    }
+                if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, point))
+                {
+                    return true;
                 }
             }
         }
