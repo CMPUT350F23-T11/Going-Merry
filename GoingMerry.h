@@ -30,8 +30,13 @@ private:
 
 #pragma region Data
 
+	bool debug = false;  // Toggle debug statements
+
 	int enemy_race = -1;  // -1: Not yet determined, 0: Protoss, 1: Terran, 2: Zerg
 	bool enemy_air_units = false;
+	bool foundBase = false;
+	bool launchedHarass = false;
+	bool launchedAttack = false;
 
 	const ObservationInterface* observation;
 	bool warpgate_researched = false;
@@ -48,15 +53,17 @@ private:
 	std::vector<Point3D> expansions;
 	std::vector<Point2D> base_locations;
 
+
 	bool startHarass = false;
 
 	const Unit* scouting_probe = nullptr;
+	int possible_starts_visited = 0;
 	int num_scouts = 2;
 	int num_harassers = 10;
 	int target_worker_count = 15;
 	int max_zealot_count = 15;  // Supply: 2
-	int max_stalker_count = 12;  // Supply: 2
-	int max_immortal_count = 8;  // Supply: 4
+	int max_stalker_count = 15;  // Supply: 2
+	int max_immortal_count = 10;  // Supply: 4
 	int max_colossus_count = 5;  // Supply: 6
 	int max_voidray_count = 5;  // Supply: 4
 	int max_phoenix_count = 5;  // Supply: 2
@@ -152,7 +159,7 @@ private:
 #pragma region strategy
 
 	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);
-    
+
 	void TrySendScouts();
 	void SendScouting();
 	sc2::Point2D GetScoutMoveLocation();
@@ -160,6 +167,8 @@ private:
 	void SendHarassing(const sc2::Unit *base);
 	void TrySendHarassing(const sc2::Unit *base);
 	void CheckIfAlive(int idetifier);
+
+	void FindEnemyRace();
 
 #pragma endregion
 
@@ -174,14 +183,26 @@ private:
 
 #pragma endregion
 
+# pragma region manage army
+
 	void ManageUpgrades();
 	bool TryBuildArmy();
+	void TryBuildBaseArmy();
 	bool TryBuildAdaptiveArmy();
 
 	void ManageArmy();
 	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);
 	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // TODO
 	bool BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID ability_type, UNIT_TYPEID production_structure_type, bool warp = false);
+
+#pragma endregion
+
+#pragma region Debug Tools
+
+	void printLog(string message, bool step = false);
+
+#pragma endregion
+
 };
 
 #endif
