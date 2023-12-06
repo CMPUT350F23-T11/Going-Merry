@@ -30,6 +30,9 @@ private:
 
 #pragma region Data
 
+	int enemy_race = -1;  // -1: Not yet determined, 0: Protoss, 1: Terran, 2: Zerg
+	bool enemy_air_units = false;
+
 	const ObservationInterface* observation;
 	bool warpgate_researched = false;
     bool thermal_lance_researched = false;
@@ -45,17 +48,22 @@ private:
 	std::vector<Point3D> expansions;
 	std::vector<Point2D> base_locations;
 
+	bool startHarass = false;
+
 	const Unit* scouting_probe = nullptr;
 	int num_scouts = 2;
-	int num_harassers = 6;
+	int num_harassers = 10;
 	int target_worker_count = 15;
-	int max_zealot_count = 20;
-	int max_stalker_count = 20;
-	int max_immortal_count = 10;
-	int max_colossus_count = 10;
-	int max_voidray_count = 10;
-	int max_phoenix_count = 10;
+	int max_zealot_count = 15;  // Supply: 2
+	int max_stalker_count = 12;  // Supply: 2
+	int max_immortal_count = 8;  // Supply: 4
+	int max_colossus_count = 5;  // Supply: 6
+	int max_voidray_count = 5;  // Supply: 4
+	int max_phoenix_count = 5;  // Supply: 2
+	int max_archon_count = 10;  // Supply: 4
 	int max_cannon_count = 10;
+	int max_observer_count = 1;
+	int max_sentry_count = 2;  // Supply: 2
 		
 	vector<int> directionX{ 1,-1,0,0,1,1,-1,-1 };
 	vector<int> directionY{ 0,0,1,-1,1,-1,1,-1 };
@@ -79,7 +87,7 @@ private:
     bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
     
     //Try build structure given a location. This is used most of the time
-    bool TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion);
+    bool TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false);
     bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
     
     bool TryBuildProbe();
@@ -93,6 +101,7 @@ private:
     void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
     
 	size_t CountUnitType(UNIT_TYPEID unit_type);
+	size_t CountEnemyUnitType(UNIT_TYPEID unit_type);
 	const Unit* FindNearestMineralPatch(const Point2D& start);
 	//bool AlreadyBuilt(const Unit* ref, const Units units);
 	//bool help(const Point2D& point);
@@ -167,11 +176,12 @@ private:
 
 	void ManageUpgrades();
 	bool TryBuildArmy();
+	bool TryBuildAdaptiveArmy();
 
 	void ManageArmy();
 	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);
 	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // TODO
-	bool BuildAdaptiveUnit(const Unit* reference_unit);
+	bool BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID ability_type, UNIT_TYPEID production_structure_type, bool warp = false);
 };
 
 #endif
