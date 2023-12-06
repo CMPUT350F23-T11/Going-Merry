@@ -66,7 +66,7 @@ void GoingMerry::OnGameStart() {
     base_locations.push_back(base_loc);
 
     srand(time(0)); // use current time as seed for random generator
-    debug = false;  // Set debug mode
+    debug = true;  // Set debug mode
     return; 
 }
 
@@ -77,7 +77,8 @@ void GoingMerry::OnStep()
 
     // Get game info
     const GameInfo& game_info = observation->GetGameInfo();
-    
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+
     // In game time
     // Game loop increments by 1 for every 22.4 milliseconds of game time
     uint32_t current_game_loop = observation->GetGameLoop();
@@ -108,7 +109,17 @@ void GoingMerry::OnStep()
         TryBuildPylon();
     }
 
-    TryBuildProbe();
+    if (!bases.empty())
+    {
+        if (bases.size() == 3 && observation->GetFoodWorkers() < (40))
+        {
+            if (current_minerals < 100)
+            {
+                TryBuildProbe();
+                return;
+            }
+        }
+    }
 
     ManageArmy();
     
@@ -131,9 +142,11 @@ void GoingMerry::OnStep()
         FindEnemyRace();
     }
 
-    /*if (TryBuildProbe()) {
+    if (TryBuildProbe()) {
         return;
-    }*/
+    }
+
+    if ()
 }
 
 void GoingMerry::OnUnitIdle(const Unit* unit)
@@ -2063,6 +2076,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         robotics_bay_count >= 1 &&
         assimilator_count >= 3 &&
         battery_count < 2 &&
+        stargate_count >= 1 &&
         forge_count >= 1) {
 
         if (TryBuildStructureNearPylon(ABILITY_ID::BUILD_SHIELDBATTERY, UNIT_TYPEID::PROTOSS_PROBE)) {
@@ -2077,6 +2091,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         robotics_facility_count >= 2 &&
         robotics_bay_count >= 1 &&
         assimilator_count < 4 &&
+        stargate_count >= 1 &&
         forge_count >= 1) {
 
         if (TryBuildAssimilator()) {
