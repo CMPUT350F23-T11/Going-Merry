@@ -1859,15 +1859,31 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
     //      15      0:40      Gateway
-    if (gateway_count == 0 &&
+    if (pylon_count > 0 &&
+        gateway_count == 0 &&
         warpgate_count == 0) {
         if (TryBuildGateway()) {
             //std::cout<<"GATEWAY 1 0:40"<<std::endl;
         }
     }
     
-    if ((gateway_count > 0 || warpgate_count > 0) && (CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < 10)){
-        TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+    // TRAINING BASE ARMY
+    if((gateway_count > 0 || warpgate_count > 0)){
+        if(CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT) < 10){
+            TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+            TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+        }
+        else if(CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) < 10){
+            TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
+            TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+        }
+        
+        // chronoboost gateways
+        for(const auto& gateway : gateways){
+            if(!gateway->orders.empty()){
+                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateway);
+            }
+        }
     }
 
     //      16      0:48      Assimilator
@@ -1886,9 +1902,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
 
-    //      19      1:13      Gateway
+    //      19      1:13      Gateway (x3), moving gateway from 2nd base here
     if (warpgate_count == 0 &&
-        gateway_count < 2 &&
+        gateway_count < 3 &&
         assimilator_count >= 2) {
         if (TryBuildGateway()) {
             //std::cout<<"GATEWAY 2 1:13"<<std::endl;
@@ -1896,28 +1912,16 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
     //      20      1:28      Cybernetics Core
-    if (gateway_count == 2 &&
+    if (gateway_count >= 3 &&
         assimilator_count >= 2 &&
         cybernetics_count == 0) {
         if (TryBuildCyberneticsCore()) {
             //std::cout<<"CYBERNETICS 1 1:28"<<std::endl;
         }
     }
-    if((gateway_count > 0 || warpgate_count > 0) && (CountUnitType(UNIT_TYPEID::PROTOSS_STALKER) < 10)){
-        TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
-    }
 
     //      23      2:02      Stalkers x2
     //      27      2:08      Warp Gate Research
-    if (gateway_count == 2 &&
-        cybernetics_count > 0 &&
-        warpgate_researched == false) {
-        for (const auto& gateway : gateways) {
-            if (!gateway->orders.empty()) {
-                Actions()->UnitCommand(bases.front(), ABILITY_ID::EFFECT_CHRONOBOOSTENERGYCOST, gateway);
-            }
-        }
-    }
     
     //      31      2:56      Nexus
     if(cybernetics_count > 0 &&
@@ -1941,15 +1945,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
 
-    //      32      3:48      Gateway
-    if (warpgate_count == 2 &&
-        gateway_count == 0 &&
-        base_count >= 2 &&
-        robotics_facility_count >= 1) {
-        if (TryBuildGateway()) {
-            //std::cout<<"GATEWAY 3 3:48"<<std::endl;
-        }
-    }
+//    //      32      3:48      Gateway
 
     //      34      4:00      Robotics Bay
     if(base_count >= 2 &&
