@@ -35,6 +35,8 @@ private:
 	int enemy_race = -1;  // -1: Not yet determined, 0: Protoss, 1: Terran, 2: Zerg
 	bool enemy_air_units = false;
 	bool foundBase = false;
+	bool launchedHarass = false;
+	bool launchedAttack = false;
 
 	const ObservationInterface* observation;
 	bool warpgate_researched = false;
@@ -60,8 +62,8 @@ private:
 	int num_harassers = 10;
 	int target_worker_count = 15;
 	int max_zealot_count = 15;  // Supply: 2
-	int max_stalker_count = 12;  // Supply: 2
-	int max_immortal_count = 8;  // Supply: 4
+	int max_stalker_count = 15;  // Supply: 2
+	int max_immortal_count = 10;  // Supply: 4
 	int max_colossus_count = 5;  // Supply: 6
 	int max_voidray_count = 5;  // Supply: 4
 	int max_phoenix_count = 5;  // Supply: 2

@@ -66,7 +66,7 @@ void GoingMerry::OnGameStart() {
     base_locations.push_back(base_loc);
 
     srand(time(0)); // use current time as seed for random generator
-    debug = false;  // Set debug mode
+    debug = true;  // Set debug mode
     return; 
 }
 
@@ -108,6 +108,8 @@ void GoingMerry::OnStep()
         TryBuildPylon();
     }
 
+    TryBuildProbe();
+
     ManageArmy();
     
     ManageWorkers(UNIT_TYPEID::PROTOSS_PROBE, ABILITY_ID::HARVEST_GATHER_PROBE, UNIT_TYPEID::PROTOSS_ASSIMILATOR);
@@ -129,9 +131,9 @@ void GoingMerry::OnStep()
         FindEnemyRace();
     }
 
-    if (TryBuildProbe()) {
+    /*if (TryBuildProbe()) {
         return;
-    }
+    }*/
 }
 
 void GoingMerry::OnUnitIdle(const Unit* unit)
@@ -1873,14 +1875,14 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     //      14      0:20      Pylon
     if (pylon_count < 1 &&
-        assimilator_count < 1) {
+        assimilator_count >= 0) {
         if (TryBuildPylon()) {
             printLog("PYLON 1");
         }
     }
 
     //      15      0:40      Gateway
-    if (pylon_count > 0 &&
+    if (pylon_count >= 0 &&
         warpgate_count + gateway_count < 1) {
         if (TryBuildGateway()) {
             printLog("GATEWAY 1");
@@ -1888,7 +1890,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
     //      16      0:48      Assimilator
-    if (gateway_count > 0 &&
+    if (warpgate_count + gateway_count >= 1 &&
         assimilator_count < 1) {
         if (TryBuildAssimilator()) {
             printLog("ASSIMILATOR 1");
@@ -1896,7 +1898,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
     //      20      1:28      Cybernetics Core
-    if (gateway_count >= 1 &&
+    if (warpgate_count + gateway_count >= 1 &&
         assimilator_count >= 1 &&
         cybernetics_count < 1) {
         if (TryBuildCyberneticsCore()) {
@@ -1906,9 +1908,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
 
     //      19      1:13      Gateway (x3), moving gateway from 2nd base here
-    if (warpgate_count < 2 &&
-        gateway_count < 2 &&
-        assimilator_count >= 1) {
+    if (warpgate_count + gateway_count < 2 &&
+        assimilator_count >= 1 &&
+        cybernetics_count >= 1) {
         if (TryBuildGateway()) {
             printLog("GATEWAY 2");
         }
@@ -1916,7 +1918,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     if (warpgate_count + gateway_count < 3 &&
         assimilator_count >= 1 &&
-        cybernetics_count > 0)
+        cybernetics_count >= 1)
     {
         if (TryBuildGateway()) {
             printLog("GATEWAY 3");
@@ -1925,7 +1927,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     if (warpgate_count + gateway_count >= 3 &&
         assimilator_count < 2 && 
-        cybernetics_count > 0) {
+        cybernetics_count >= 1) {
         if (TryBuildAssimilator()) {
             printLog("ASSIMILATOR 2");
         }
@@ -1935,9 +1937,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     //      27      2:08      Warp Gate Research
 
     //       32      3:10      Robotics Facility
-    if (cybernetics_count > 0 &&
+    if (cybernetics_count >= 1 &&
         (gateway_count + warpgate_count >= 3) &&
         base_count >= 1 &&
+        assimilator_count >= 2 &&
         robotics_facility_count < 1) {
 
         if (TryBuildRoboticsFacility()) {
@@ -1946,10 +1949,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
     
     //      31      2:56      Nexus
-    if(cybernetics_count > 0 &&
+    if(cybernetics_count >= 1 &&
        warpgate_count + gateway_count >= 3 &&
        base_count < 2 &&
-       robotics_facility_count > 0){
+       robotics_facility_count >= 1){
         if(current_minerals >= 400){
             if(TryBuildExpansionNexus()){
                 printLog("EXPAND 1");
@@ -1961,9 +1964,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     //      34      4:00      Robotics Bay
     if(base_count >= 2 &&
-       cybernetics_count > 0 &&
+       cybernetics_count >= 1 &&
+        warpgate_count + gateway_count >= 3 &&
        robotics_facility_count >= 1 &&
-        robotics_bay_count < 1 &&
+       robotics_bay_count < 1 &&
        assimilator_count >= 2){
         if(TryBuildRoboticsBay()){
             printLog("ROBOTICS BAY 1");
@@ -1972,10 +1976,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     //      49      4:45      Assimilator
     if (base_count >= 2 &&
-        cybernetics_count > 0 &&
-        warpgate_count == 3 &&
+        cybernetics_count >= 1 &&
+        warpgate_count + gateway_count >= 3 &&
         robotics_facility_count >= 1 &&
-        robotics_bay_count == 1 &&
+        robotics_bay_count >= 1 &&
         assimilator_count < 3) {
 
         if (TryBuildAssimilator()) {
@@ -1985,10 +1989,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     //      49      4:45      Gateway
     if (base_count >= 2 &&
-        cybernetics_count > 0 &&
+        cybernetics_count >= 1 &&
         warpgate_count + gateway_count < 4 &&
         robotics_facility_count >= 1 &&
-        robotics_bay_count > 0 &&
+        robotics_bay_count >= 1 &&
         assimilator_count >= 3) {
 
         if (TryBuildGateway()) {
@@ -1998,55 +2002,39 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     //      72      6:02      Forge
     if (base_count >= 2 &&
-        cybernetics_count > 0 &&
+        cybernetics_count >= 1 &&
         warpgate_count + gateway_count >= 4 &&
-        robotics_facility_count > 0 &&
-        robotics_bay_count > 0 &&
+        robotics_facility_count >= 1 &&
+        robotics_bay_count >= 1 &&
         assimilator_count >= 3 &&
         forge_count < 1) {
         if (TryBuildForge()) {
-            printLog("FORGE");
-        }
-    }
-
-    if (base_count < 3 &&
-        cybernetics_count > 0 &&
-        warpgate_count + gateway_count < 4 &&
-        robotics_facility_count < 2 &&
-        robotics_bay_count > 0 &&
-        assimilator_count >= 3 &&
-        forge_count > 0)
-    {
-        if (current_minerals > 500)
-        {
-            if (TryBuildRoboticsFacility())
-            {
-                printLog("ROBOTICS FACILITY 2");
-            }
+            printLog("FORGE 1");
         }
     }
 
     //      62      5:35      Nexus
-    if(base_count < 3 &&
-       cybernetics_count > 0 &&
-       warpgate_count + gateway_count >= 4 &&
-       robotics_facility_count > 0 &&
-       robotics_bay_count > 0 &&
-       forge_count > 0){
-        
+    if (base_count < 3 &&
+        cybernetics_count >= 1 &&
+        warpgate_count + gateway_count >= 4 &&
+        robotics_facility_count >= 1 &&
+        assimilator_count >= 3 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 1) {
+
         //      62      5:35      Nexus
-        if(TryBuildExpansionNexus()){
+        if (TryBuildExpansionNexus()) {
             printLog("EXPAND 2");
         }
     }
 
     if (base_count >= 3 &&
-        cybernetics_count > 0 &&
-        warpgate_count + gateway_count < 4 &&
+        cybernetics_count >= 1 &&
+        warpgate_count + gateway_count >= 4 &&
         robotics_facility_count < 2 &&
-        robotics_bay_count > 0 &&
-        assimilator_count >= 3 && 
-        forge_count > 0)
+        robotics_bay_count >= 1 &&
+        assimilator_count >= 3 &&
+        forge_count >= 1)
     {
         if (TryBuildRoboticsFacility())
         {
@@ -2054,15 +2042,28 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         }
     }
 
+    if (base_count >= 3 &&
+        warpgate_count + gateway_count >= 4 &&
+        assimilator_count >= 3 &&
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 1 &&
+        stargate_count < 1) {
+        if (TryBuildStargate()) {
+            //std::cout<<"STARGATE"<<std::endl;
+            printLog("STARGATE 1");
+        }
+    }
+
     // random shield batteries instead
     if (base_count >= 3 &&
-        cybernetics_count > 0 &&
+        cybernetics_count >= 1 &&
         warpgate_count + gateway_count >= 4 &&
-        robotics_facility_count > 0 &&
-        robotics_bay_count > 0 &&
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
         assimilator_count >= 3 &&
         battery_count < 2 &&
-        forge_count > 0) {
+        forge_count >= 1) {
 
         if (TryBuildStructureNearPylon(ABILITY_ID::BUILD_SHIELDBATTERY, UNIT_TYPEID::PROTOSS_PROBE)) {
             printLog("BATTERY x2");
@@ -2071,12 +2072,12 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     //      49      4:45      Assimilator
     if (base_count >= 3 &&
-        cybernetics_count > 0 &&
+        cybernetics_count >= 1 &&
         warpgate_count + gateway_count >= 4 &&
-        robotics_facility_count > 0 &&
-        robotics_bay_count > 0 &&
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
         assimilator_count < 4 &&
-        forge_count > 0) {
+        forge_count >= 1) {
 
         if (TryBuildAssimilator()) {
             printLog("ASSIMILATOR 4");
@@ -2087,8 +2088,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     if (base_count >= 3 &&
         warpgate_count + gateway_count < 5 &&
         assimilator_count >= 4 &&
-        robotics_bay_count > 0 &&
-        forge_count > 0) {
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 1) {
         if (TryBuildGateway()) {
             printLog("GATEWAY 5");
         }
@@ -2097,8 +2099,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     //      86      6:52      Twilight Council
     if(base_count >= 3 &&
        assimilator_count >= 4 &&
-       robotics_bay_count > 0 &&
-       forge_count > 0 &&
+        warpgate_count + gateway_count >= 5 &&
+       robotics_facility_count >= 2 &&
+       robotics_bay_count >= 1 &&
+       forge_count >= 1 &&
        twilight_count < 1){
         if(TryBuildTwilightCouncil()){
             printLog("TWILIGHT");
@@ -2107,10 +2111,11 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     if (base_count >= 3 &&
         assimilator_count >= 4 &&
-        robotics_bay_count > 0 &&
-        forge_count > 0 &&
-        twilight_count > 0 &&
-        forge_count < 2) {
+        warpgate_count + gateway_count >= 5 &&
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count < 2 &&
+        twilight_count >= 1) {
         if (TryBuildForge()) {
             printLog("FORGE 2");
         }
@@ -2120,9 +2125,10 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     if (base_count >= 3 &&
         warpgate_count + gateway_count < 6 &&
         assimilator_count >= 4 &&
-        robotics_bay_count > 0 &&
-        forge_count > 1 &&
-        twilight_count > 0) {
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 2 &&
+        twilight_count >= 1) {
         if (TryBuildGateway()) {
             printLog("GATEWAY 6");
         }
@@ -2138,15 +2144,16 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
     if (base_count >= 3 &&
-        warpgate_count >= 6 &&
+        warpgate_count + gateway_count >= 6 &&
         assimilator_count >= 4 &&
-        robotics_bay_count > 0 &&
-        forge_count > 1 &&
-        twilight_count > 0 &&
-        stargate_count < 1) {
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 2 &&
+        twilight_count >= 1 &&
+        stargate_count < 2) {
         if (TryBuildStargate()) {
             //std::cout<<"STARGATE"<<std::endl;
-            printLog("STARGATE 1");
+            printLog("STARGATE 2");
         }
 
         if (cannon_count < max_cannon_count) {
@@ -2164,10 +2171,11 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     if (base_count >= 3 &&
         warpgate_count + gateway_count < 7 &&
         assimilator_count >= 4 &&
-        robotics_bay_count > 0 &&
-        forge_count > 1 &&
-        twilight_count > 0 &&
-        stargate_count > 0) {
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 2 &&
+        twilight_count >= 1 &&
+        stargate_count >= 1) {
         if (TryBuildAssimilator()) {
             printLog("GATEWAY 7");
         }
@@ -2185,10 +2193,11 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     if (base_count >= 3 &&
         warpgate_count + gateway_count >= 7 &&
         assimilator_count < 5 &&
-        robotics_bay_count > 0 &&
-        forge_count > 1 &&
-        twilight_count > 0 && 
-        stargate_count > 0) {
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 2 &&
+        twilight_count >= 1 && 
+        stargate_count >= 1) {
         if (TryBuildAssimilator()) {
             printLog("ASSIMILATOR 5");
         }
@@ -2204,12 +2213,13 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
     if (base_count >= 3 &&
-        warpgate_count >= 7 &&
+        warpgate_count + gateway_count >= 7 &&
         assimilator_count >= 5 &&
-        robotics_bay_count > 0 &&
-        forge_count > 1 &&
-        twilight_count > 0 &&
-        stargate_count > 0 &&
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 2 &&
+        twilight_count >= 1 &&
+        stargate_count >= 1 &&
         fleet_count < 1) {
         if (TryBuildFleetBeacon()) {
             printLog("FLEET BEACON");
@@ -2228,13 +2238,14 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     //      149      9:27      Gateway x3, Templar Archives
     if (base_count >= 3 &&
-        warpgate_count >= 7 &&
+        warpgate_count + gateway_count >= 7 &&
         assimilator_count >= 5 &&
-        robotics_bay_count > 0 &&
-        forge_count > 1 &&
-        twilight_count > 0 &&
-        stargate_count > 0 &&
-        fleet_count > 0 &&
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 2 &&
+        twilight_count >= 1 &&
+        stargate_count >= 1 &&
+        fleet_count >= 1 &&
         archive_count < 1) {
         if (TryBuildTemplarArchives())
         {
@@ -2243,14 +2254,15 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
     if (base_count >= 3 &&
-        warpgate_count < 8 &&
+        warpgate_count + gateway_count < 8 &&
         assimilator_count >= 5 &&
-        robotics_bay_count > 0 &&
-        forge_count > 1 &&
-        twilight_count > 0 &&
-        stargate_count > 0 &&
-        fleet_count > 0 &&
-        archive_count > 0) {
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 2 &&
+        twilight_count >= 1 &&
+        stargate_count >= 1 &&
+        fleet_count >= 1 &&
+        archive_count >= 1) {
         if (TryBuildGateway())
         {
             printLog("GATEWAY 8");
@@ -2259,13 +2271,14 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
     //      133      8:38      Nexus
     if (base_count < 4 &&
-        warpgate_count >= 7 &&
+        warpgate_count + gateway_count >= 7 &&
         assimilator_count >= 5 &&
-        robotics_bay_count > 0 &&
-        forge_count > 1 &&
-        twilight_count > 0 &&
-        stargate_count > 0 &&
-        fleet_count > 0) {
+        robotics_facility_count >= 2 &&
+        robotics_bay_count >= 1 &&
+        forge_count >= 2 &&
+        twilight_count >= 1 &&
+        stargate_count >= 1 &&
+        fleet_count >= 1) {
         if (TryBuildExpansionNexus()) {
             printLog("EXPAND 3");
         }
@@ -2276,7 +2289,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         warpgate_count + gateway_count < (base_count * 3) &&
         robotics_facility_count < (base_count) &&
         assimilator_count < (base_count * 2) &&
-        twilight_count > 0 &&
+        twilight_count >= 1 &&
         cannon_count < (base_count * 5) &&
         battery_count < (base_count * 2) &&
         stargate_count < (base_count)) {
@@ -2313,9 +2326,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         warpgate_count >= (base_count * 3) &&
         robotics_facility_count >= (base_count) &&
         assimilator_count >= (base_count * 2) &&
-        twilight_count > 0 &&
-        cannon_count <= (base_count * 5) &&
-        battery_count <= (base_count * 2)) {
+        twilight_count >= 1 &&
+        cannon_count < (base_count * 5) &&
+        battery_count < (base_count * 2)) {
         if (cannon_count < (base_count * 5)) {
             if (TryBuildPhotonCannon()) {
                 //std::cout << "CANNON x5 7:58" << std::endl;
@@ -2358,6 +2371,7 @@ void GoingMerry::TryBuildBaseArmy()
     size_t rfacs_count = CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
     size_t rbay_count = CountUnitType(UNIT_TYPEID::PROTOSS_ROBOTICSBAY);
     size_t stargate_count = CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE);
+    size_t warpgate_count = CountUnitType(UNIT_TYPEID::PROTOSS_WARPGATE);
 
     Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
     Units gateways = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_GATEWAY));
@@ -2377,21 +2391,39 @@ void GoingMerry::TryBuildBaseArmy()
         TryBuildUnit(ABILITY_ID::TRAIN_IMMORTAL, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
     }
     if (stargate_count > 0 && voidray_count < 2)
-    {
-        TryBuildUnit(ABILITY_ID::TRAIN_VOIDRAY, UNIT_TYPEID::PROTOSS_ROBOTICSFACILITY);
+    {  
+        TryBuildUnit(ABILITY_ID::TRAIN_VOIDRAY, UNIT_TYPEID::PROTOSS_STARGATE);
+
     }
     if (zealot_count < num_harassers) {
-        TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
-        TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+        if (warpgate_count > 0)
+        {
+            TryWarpInUnit(ABILITY_ID::TRAINWARP_ZEALOT);
+        }
+        else
+        {
+            TryBuildUnit(ABILITY_ID::TRAIN_ZEALOT, UNIT_TYPEID::PROTOSS_GATEWAY);
+        }
     }
-    if (stalker_count < ((float)max_stalker_count / (float)2) + num_scouts) {
-        TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
-        TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+    if (stalker_count < max_stalker_count) {
+        if (warpgate_count > 0)
+        {
+            TryWarpInUnit(ABILITY_ID::TRAINWARP_STALKER);
+        }
+        else
+        {
+            TryBuildUnit(ABILITY_ID::TRAIN_STALKER, UNIT_TYPEID::PROTOSS_GATEWAY);
+        }
     }
-    if (sentry_count < max_sentry_count)
-    {
-        TryBuildUnit(ABILITY_ID::TRAIN_SENTRY, UNIT_TYPEID::PROTOSS_GATEWAY);
-        TryWarpInUnit(ABILITY_ID::TRAINWARP_SENTRY);
+    if (sentry_count < max_sentry_count) {
+        if (warpgate_count > 0)
+        {
+            TryWarpInUnit(ABILITY_ID::TRAINWARP_SENTRY);
+        }
+        else
+        {
+            TryBuildUnit(ABILITY_ID::TRAIN_SENTRY, UNIT_TYPEID::PROTOSS_GATEWAY);
+        }
     }
 
     // chronoboost gateways
@@ -2854,7 +2886,18 @@ void GoingMerry::ManageArmy()
     size_t num_immortals = CountUnitType(UNIT_TYPEID::PROTOSS_IMMORTAL);
     size_t num_colossus = CountUnitType(UNIT_TYPEID::PROTOSS_COLOSSUS);
     size_t num_voidray = CountUnitType(UNIT_TYPEID::PROTOSS_VOIDRAY);
+    size_t num_zealots = CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT);
     sc2::Units enemy_bases = Observation()->GetUnits(Unit::Alliance::Enemy, IsTownHall());
+
+    if (num_zealots < num_harassers && launchedHarass)
+    {
+        launchedHarass = false;
+    }
+    
+    if (army.size() < 20 && launchedAttack)
+    {
+        launchedAttack = false;
+    }
 
     //There are no enemies yet
     if (visible_enemies.empty()) {
@@ -2863,6 +2906,13 @@ void GoingMerry::ManageArmy()
         {
             if (find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
                 continue;
+            }
+
+            if (launchedHarass)
+            {
+                if (find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
+                    continue;
+                }
             }
 
             const Unit* assigned_base = GetRandomEntry(bases);
@@ -2922,6 +2972,13 @@ void GoingMerry::ManageArmy()
                 continue;
             }
 
+            if (launchedHarass)
+            {
+                if (find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
+                    continue;
+                }
+            }
+
             if (unit->unit_type == UNIT_TYPEID::PROTOSS_OBSERVER)
             {
                 if (unit->orders.front().ability_id == ABILITY_ID::ATTACK)
@@ -2934,26 +2991,37 @@ void GoingMerry::ManageArmy()
 
             if ((army.size() > (20 + num_harassers + num_scouts)) && (unit->shield > (unit->shield_max - 10)))
             {
-                if (enemy_bases.size() > 0) // only send harass if an enemy base is found
+                if (enemy_bases.size() > 0 && !launchedHarass) // only send harass if an enemy base is found
                 {
                     const sc2::Unit* base = enemy_bases.back();
                     TrySendHarassing(base);
+                    launchedHarass = true;
+                    return;
                 }
+
                 AttackWithUnit(unit, observation, target_enemy->pos);
+                launchedAttack = true;
             }
             // If supply cap reached and current supply used is 195
             else if (observation->GetFoodUsed() > 180 && (unit->shield > (unit->shield_max - 10)))
             {
-                if (enemy_bases.size() > 0) // only send harass if an enemy base is found
+                if (enemy_bases.size() > 0 && !launchedHarass) // only send harass if an enemy base is found
                 {
                     const sc2::Unit *base = enemy_bases.back();
                     TrySendHarassing(base);
+                    launchedHarass = true;
+                    return;
                 }
+
                 AttackWithUnit(unit, observation, target_enemy->pos);
+                launchedAttack = true;
             }
             else
             {
-                DefendWithUnit(unit, observation);
+                if (!launchedAttack)
+                {
+                    DefendWithUnit(unit, observation);
+                }
             }
 
             switch (unit->unit_type.ToType()) {
@@ -3034,6 +3102,12 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
     // Safety check: assert unit is not scout or harasser
     if (std::find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
         return;
+    }
+    if (launchedHarass)
+    {
+        if (find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
+            return;
+        }
     }
 
     Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
