@@ -305,7 +305,7 @@ bool GoingMerry::TryBuildStructure(AbilityID ability_type_for_structure, UnitTyp
         return false;
     }
     if (!is_expansion) {
-        for (const auto& expansion : expansions_) {
+        for (const auto& expansion : expansions) {
             if (Distance2D(location, Point2D(expansion.x, expansion.y)) < 7) {
                 return false;
             }
@@ -539,7 +539,7 @@ bool GoingMerry::TryBuildStructureForPylon(AbilityID ability_type_for_structure,
         return false;
     }
     if (!isExpansion) {
-        for (const auto& expansion : expansions_) {
+        for (const auto& expansion : expansions) {
             if (Distance2D(location, Point2D(expansion.x, expansion.y)) < 7) {
                 return false;
             }
@@ -2352,6 +2352,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
 #pragma region Manage Army
 
+/// <summary>
+/// Build Base army
+/// </summary>
 void GoingMerry::TryBuildBaseArmy()
 {
     size_t zealot_count = CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT);
@@ -2437,6 +2440,10 @@ void GoingMerry::TryBuildBaseArmy()
     }
 }
 
+/// <summary>
+/// Build army
+/// </summary>
+/// <returns></returns>
 bool GoingMerry::TryBuildArmy()
 {
     // Builds original fixed army composition
@@ -2586,6 +2593,10 @@ bool GoingMerry::TryBuildArmy()
     }
 }
 
+/// <summary>
+/// Build adaptive army
+/// </summary>
+/// <returns></returns>
 bool GoingMerry::TryBuildAdaptiveArmy()
 {
     const ObservationInterface* observation = Observation();
@@ -2733,6 +2744,12 @@ bool GoingMerry::TryBuildAdaptiveArmy()
     }
 }
 
+/// <summary>
+/// attack with units
+/// </summary>
+/// <param name="unit">unit list</param>
+/// <param name="observation">observation interface</param>
+/// <param name="position">target position</param>
 void GoingMerry::AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position) {
 
 
@@ -2869,6 +2886,9 @@ void GoingMerry::AttackWithUnit(const Unit* unit, const ObservationInterface* ob
     return;
 }
 
+/// <summary>
+/// manage army
+/// </summary>
 void GoingMerry::ManageArmy()
 {
     const ObservationInterface* observation = Observation();
@@ -3089,6 +3109,11 @@ void GoingMerry::ManageArmy()
     }
 }
 
+/// <summary>
+/// defend with units
+/// </summary>
+/// <param name="unit">unit list</param>
+/// <param name="observation">observation interface</param>
 void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* observation)
 {
     // Safety check: assert unit is not scout or harasser
@@ -3132,6 +3157,14 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
     }
 }
 
+/// <summary>
+/// build adaptive units 
+/// </summary>
+/// <param name="reference_unit">reference unit type id</param>
+/// <param name="ability_type">ablitiy id</param>
+/// <param name="production_structure_type">production structure type id</param>
+/// <param name="warp"></param>
+/// <returns></returns>
 bool GoingMerry::BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID ability_type, UNIT_TYPEID production_structure_type, bool warp)
 {
     // TODO: Based on reference_unit and enemy army composition, issue build order
@@ -3372,16 +3405,23 @@ bool GoingMerry::BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID 
 
 #pragma region  Map Analysis
 
+/// <summary>
+/// generate grids
+/// </summary>
+/// <param name="centre">centre point</param>
+/// <param name="range">range</param>
+/// <returns></returns>
 vector<Point2D> GoingMerry::CalculateGrid(Point2D centre, int range)
 {
     vector<Point2D> res;
-    //cout << "1-1" << endl;
+
+    //calculate the ramge
     float minX = centre.x - range < 0 ? 0 : centre.x - range;
     float minY = centre.y - range < 0 ? 0 : centre.y - range;
     float maxX = centre.x + range > game_info.width ? game_info.width : centre.x + range;
     float maxY = centre.y + range > game_info.height ? game_info.height : centre.y + range;
-    //cout << minX << " " << maxX << " " << minY << " " << maxY << endl;
 
+    //calculate every grid
     for (double i = minX; i <= maxX; i++)
     {
         for (double j = minY; j <= maxY; j++)
@@ -3389,37 +3429,36 @@ vector<Point2D> GoingMerry::CalculateGrid(Point2D centre, int range)
             res.push_back(Point2D(i, j));
         }
     }
-    //cout << "1-3" << endl;
-    //cout << res.size() << endl;
-    //cout << res[0].x << " " << res[0].y << endl;
-    //cout << res[res.size() - 1].x << " " << res[res.size() - 1].y << endl;
     return res;
 }
 
+/// <summary>
+/// find ramp
+/// </summary>
+/// <param name="centre">centre point</param>
+/// <param name="range">range</param>
+/// <returns></returns>
 vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
 {
     vector<Point2D> grid = CalculateGrid(Point2D(centre.x, centre.y), range);
-    //cout << "2-1" << endl;
     vector<Point2D> ramp;
-
-    //cout << "grid " << grid.size() << endl;
+    
+    //check grid one by one
     for (const auto point : grid)
     {
-        //cout << point.x << " " << point.y << endl;
         if (!observation->IsPlacable(point) && observation->IsPathable(point))
         {
             ramp.push_back(point);
         }
     }
 
-    //cout << "ramp " << ramp.size() << endl;
-
+    //if no return
     if (ramp.size() == 0)
     {
-        //cout << "2-0" << endl;
         return ramp;
     }
     
+    //use average to remove unexpected points
     double averageX = 0;
     double averageY = 0;
 
@@ -3432,11 +3471,9 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
     averageX /= ramp.size();
     averageY /= ramp.size();
 
-    //cout << "2-3" << endl;
 
     for (vector<Point2D>::iterator point = ramp.begin(); point < ramp.end();)
     {
-        //bool temp = help(*point);
            
         if (Distance2D(*point, Point2D(averageX, averageY)) > 8)
         {
@@ -3447,19 +3484,25 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
             point++; 
         }
     }
-    //cout << "2-4 " << ramp.size() << endl;
     return ramp;
 }
 
+/// <summary>
+/// find nearest ramp for centre unit
+/// </summary>
+/// <param name="centre">centre unit</param>
+/// <returns></returns>
 Point2D GoingMerry::FindNearestRampPoint(const Unit* centre)
 {
     vector<Point2D> ramp = FindRamp(start_location,20);
 
+    //if no ramps return
     if (ramp.size() == 0)
     {
         return Point2D(-1, -1);
     }
 
+    //find the closeted ramp point to the centre point
     Point2D closet = GetRandomEntry(ramp);
     for (const auto& point : ramp)
     {
@@ -3468,12 +3511,15 @@ Point2D GoingMerry::FindNearestRampPoint(const Unit* centre)
             closet = point;
         }
     }
-    //cout << "3" << endl;
-    //cout << closet.x << " " << closet.y << endl << endl;
 
     return closet;
 }
 
+/// <summary>
+/// find all points of ramp top
+/// </summary>
+/// <param name="centre">centre point</param>
+/// <returns></returns>
 vector<Point2D> GoingMerry::CalculatePlacableRamp(const Unit* centre)
 {
     vector<Point2D> wall;
@@ -3496,6 +3542,11 @@ vector<Point2D> GoingMerry::CalculatePlacableRamp(const Unit* centre)
     return wall;
 }
 
+/// <summary>
+/// check if point next to ramp
+/// </summary>
+/// <param name="point">point</param>
+/// <returns></returns>
 bool GoingMerry::IsNextToRamp(const Point2D point)
 {
     for (int i = 0; i < 8; i++)
@@ -3511,6 +3562,11 @@ bool GoingMerry::IsNextToRamp(const Point2D point)
     return false;
 }
 
+/// <summary>
+/// check if point next to cliff
+/// </summary>
+/// <param name="point">point</param>
+/// <returns></returns>
 bool GoingMerry::IsNextToCliff(const Point2D point) {
 
     for (int i = 0; i < 8; i++)

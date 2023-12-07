@@ -130,7 +130,6 @@ private:
 	bool TryBuildAssimilator();
     bool TryBuildGas(AbilityID build_ability, UnitTypeID worker_type, Point2D base_location);
 	bool TryBuildPylon();
-	bool TryBuildDarkShrine();
 	bool TryBuildFleetBeacon();
 	bool TryBuildGateway();
 	bool TryBuildPhotonCannon();
@@ -140,7 +139,6 @@ private:
 	bool TryBuildTwilightCouncil();
 	bool TryBuildWarpGate();
 	bool TryBuildShieldBattery();
-	bool TryBuildStasisWard();
 	bool TryBuildRoboticsBay();
 	bool TryBuildExpansionNexus();
     
