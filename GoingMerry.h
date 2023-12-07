@@ -74,6 +74,7 @@ private:
 		
 	vector<int> directionX{ 1,-1,0,0,1,1,-1,-1 };
 	vector<int> directionY{ 0,0,1,-1,1,-1,1,-1 };
+	vector<Point2D> ramps;
 
 	GameInfo game_info;
 
@@ -116,7 +117,7 @@ private:
 	bool HavePylonNearby(Point2D& point);
 	bool HaveCannonNearby(Point2D& point);
 	Point2D FindClostest(Point2D nux, vector<Point2D> position);
-	vector<Point2D> GetOffSetPoints(Point2D point, UNIT_TYPEID unit_type);
+	vector<Point2D> GetOffSetPoints(Point2D point);
 
 #pragma endregion
 
