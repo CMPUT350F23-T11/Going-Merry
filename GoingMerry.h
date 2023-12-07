@@ -72,6 +72,7 @@ private:
 
 	Point3D start_location;
 	Point3D staging_location;
+	vector<Point2D> ramps;
 	
 #pragma endregion
 
@@ -109,7 +110,7 @@ private:
 	bool HavePylonNearby(Point2D& point);
 	bool HaveCannonNearby(Point2D& point);
 	Point2D FindClostest(Point2D nux, vector<Point2D> position);
-	vector<Point2D> GetOffSetPoints(Point2D point, UNIT_TYPEID unit_type);
+	vector<Point2D> GetOffSetPoints(Point2D point);
 
 #pragma endregion
 

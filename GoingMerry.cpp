@@ -75,9 +75,11 @@ void GoingMerry::OnGameStart() {
     expansions = search::CalculateExpansionLocations(Observation(), Query());
     start_location = Observation()->GetStartLocation();
     staging_location = start_location;
+
     
     // Save main base location
     Units base = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    ramps = CalculatePlacableRamp(base.front());
     Point2D base_loc(base.front()->pos.x, base.front()->pos.y);
     base_locations.push_back(base_loc);
     
@@ -87,6 +89,22 @@ void GoingMerry::OnGameStart() {
 
 void GoingMerry::OnStep() 
 { 
+
+    //auto temp = FindClostest(start_location, ramps);
+    //double differenceX = temp.x - start_location.x;
+    //double differenceY = temp.y - start_location.y;
+    //double tempx = temp.x;
+    //double tempy = temp.y;
+
+    //tempx -= 1;
+    //tempy += 8;
+
+
+
+
+    //Units probes = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_PROBE));
+
+    //Actions()->UnitCommand(probes[0], ABILITY_ID::SMART, Point2D(tempx, tempy));
 
     const ObservationInterface* observation = Observation();
 
@@ -828,7 +846,7 @@ bool GoingMerry::HavePylonNearby(Point2D& point)
     return false;
 }
 
-vector<Point2D> GoingMerry::GetOffSetPoints(Point2D point, UNIT_TYPEID unit_type) {
+vector<Point2D> GoingMerry::GetOffSetPoints(Point2D point) {
     vector<Point2D> offSetPoints;
     Point3D startLocation = observation->GetStartLocation();
     
@@ -1006,7 +1024,7 @@ bool GoingMerry::TryBuildGateway()
     if ((num_gateway + num_warpgate) < ((num_base * 3) + 1))
     {
         if (!warpgate_researched)
-        {
+        {   
             return TryBuildStructureNearPylon(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE);
         }
         else
@@ -1403,18 +1421,16 @@ bool GoingMerry::TryBuildPhotonCannon()
     if (nux.size() == 0)
         return false;
 
-    auto position = CalculatePlacableRamp(nux.front());
-
-    if (position.size() != 0)
+    if (ramps.size() != 0)
     {
-        for (auto pos : position)
+        for (auto pos : ramps)
         {
             if (HaveCannonNearby(pos))
                 continue;
 
             if (HavePylonNearby(pos))
             {
-                if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos))
+                if (TryBuildStructure(ABILITY_ID::BUILD_FORGE, pos))
                 {
                     cout << "successful " << pos.x << " : " << pos.y << endl;
                     return true;
@@ -1422,7 +1438,7 @@ bool GoingMerry::TryBuildPhotonCannon()
             }
             else
             {
-                auto closet = FindClostest(nux.front()->pos, position);
+                auto closet = FindClostest(nux.front()->pos, ramps);
                 TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
             }
         }
@@ -1449,7 +1465,7 @@ bool GoingMerry::TryBuildPhotonCannon()
 
         if (observation->IsPlacable(grid) && IsNextToCliff(grid))
         {
-            vector<Point2D> points = GetOffSetPoints(grid, UNIT_TYPEID::PROTOSS_PHOTONCANNON);
+            vector<Point2D> points = GetOffSetPoints(grid);
 
             for (auto point : points)
             {
@@ -1818,16 +1834,82 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     //      14      0:20      Pylon
     if (pylon_count == 0 &&
         assimilator_count < 1) {
-        if (TryBuildPylon()) {
+        if (!ramps.empty())
+        {
+            auto temp = FindClostest(start_location, ramps);
+            double differenceX = start_location.x - temp.x;
+            double differenceY = start_location.y - temp.y;
+            double tempx = temp.x;
+            double tempy = temp.y;
+
+            tempx = differenceX > 0 ? tempx + 6.5 : tempx - 6.5;
+            tempx = abs(differenceX) <= 5 ? start_location.x : tempx;
+            tempy = differenceY > 0 ? tempy + 6.5 : tempy - 6.5;
+            tempy = abs(differenceY) <= 5 ? start_location.y : tempy;
+
+            ////需要hard code
+            ////左下 x+1 , y - 5
+            ////右下 x+5 , y - 1
+            ////左上 x-8 , y - 1
+            ////右上 x+8 ，y + 1
+
+            Units probes = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_PROBE));
+
+
+
+            //auto points = GetOffSetPoints(Point2D(tempx, tempy));
+            bool flag = false;
+
+           /* for (auto point : points)
+            {*/
+                auto t = TryBuildStructure(ABILITY_ID::BUILD_PYLON, UNIT_TYPEID::PROTOSS_PROBE, Point2D(tempx,tempy));
+                if (t)
+                {
+                    //Actions()->UnitCommand(probes[0], ABILITY_ID::SMART, Point2D(tempx, tempy));
+                    flag = true;
+                    cout << "p" << endl;
+                    //break;
+                }
+            //}
+            if (!flag)
+                TryBuildPylon();
+
+
+        }
+        else {
             //std::cout<<"PYLON 1 0:20"<<std::endl; // 23 cap
+            TryBuildPylon();
         }
     }
 
     //      15      0:40      Gateway
     if (gateway_count == 0 &&
         warpgate_count == 0) {
-        if (TryBuildGateway()) {
+        if (!ramps.empty())
+        {
+            bool flag = false;
+            for (auto ramp : ramps)
+            {
+                if (flag)
+                    break;
+                auto points = GetOffSetPoints(ramp);
+                for (auto point : points)
+                {
+                    if (flag)
+                        break;
+                    if (TryBuildStructure(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE, point))
+                    {
+                        flag = true;
+                        cout << "g" << endl;
+                    }
+                }
+            }
+            if (!flag)
+                TryBuildGateway();
+        }
+        else{
             //std::cout<<"GATEWAY 1 0:40"<<std::endl;
+            TryBuildGateway();
         }
     }
 
@@ -3117,7 +3199,7 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
     {
         //bool temp = help(*point);
            
-        if (Distance2D(*point, Point2D(averageX, averageY)) > 8)
+        if (Distance2D(*point, Point2D(averageX, averageY)) > 10)
         {
             point = ramp.erase(point);
         }
@@ -3163,11 +3245,11 @@ vector<Point2D> GoingMerry::CalculatePlacableRamp(const Unit* centre)
         return wall;
     }
 
-    vector<Point2D> grid = CalculateGrid(clostest,18);
+    vector<Point2D> grid = CalculateGrid(clostest,5);
 
     for (auto point : grid)
     {
-        if (centre->pos.z - observation->TerrainHeight(point) < 0.5 && observation->IsPlacable(point) && IsNextToRamp(point))
+        if (start_location.z - observation->TerrainHeight(point) < 0.5 && observation->IsPlacable(point) && IsNextToRamp(point))
         {
             wall.push_back(point);
         }
@@ -3195,7 +3277,7 @@ bool GoingMerry::IsNextToCliff(const Point2D point) {
     for (int i = 0; i < 8; i++)
     {
         Point2D temp = Point2D(point.x + directionX[i], point.y + directionY[i]);
-        if (start_location.z - observation->TerrainHeight(temp) > 4) {
+        if (start_location.z - observation->TerrainHeight(temp) > 5) {
 
             return true;
         }
