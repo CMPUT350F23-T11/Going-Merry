@@ -62,6 +62,10 @@ void GoingMerry::OnGameStart() {
     
     // Save main base location
     Units base = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    if (!base.empty())
+    {
+        ramps = CalculatePlacableRamp(base[0]);
+    }
     Point2D base_loc(base.front()->pos.x, base.front()->pos.y);
     base_locations.push_back(base_loc);
 
@@ -72,6 +76,11 @@ void GoingMerry::OnGameStart() {
 
 void GoingMerry::OnStep() 
 { 
+    //Units probes = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_PROBE));
+    //for (int i = 0; i < ramps.size(); i++)
+    //{
+    //    Actions()->UnitCommand(probes[0], ABILITY_ID::SMART, ramps[i]);
+    //}
 
     const ObservationInterface* observation = Observation();
 
@@ -146,7 +155,7 @@ void GoingMerry::OnStep()
         return;
     }
 
-    if ()
+    //if ()
 }
 
 void GoingMerry::OnUnitIdle(const Unit* unit)
@@ -816,7 +825,7 @@ bool GoingMerry::HavePylonNearby(Point2D& point)
     return false;
 }
 
-vector<Point2D> GoingMerry::GetOffSetPoints(Point2D point, UNIT_TYPEID unit_type) {
+vector<Point2D> GoingMerry::GetOffSetPoints(Point2D point) {
     vector<Point2D> offSetPoints;
     Point3D startLocation = observation->GetStartLocation();
     
@@ -1439,32 +1448,32 @@ bool GoingMerry::TryBuildPhotonCannon()
     if (nux.size() == 0)
         return false;
 
-    auto position = CalculatePlacableRamp(nux.front());
+    //auto position = CalculatePlacableRamp(nux.front());
 
-    if (position.size() != 0)
-    {
-        for (auto pos : position)
-        {
-            if (HaveCannonNearby(pos))
-                continue;
+    //if (ramps.size() != 0)
+    //{
+    //    for (auto pos : ramps)
+    //    {
+    //        if (HaveCannonNearby(pos))
+    //            continue;
 
-            if (HavePylonNearby(pos))
-            {
-                if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos))
-                {
-                    cout << "successful " << pos.x << " : " << pos.y << endl;
-                    return true;
-                }
-            }
-            else
-            {
-                auto closet = FindClostest(nux.front()->pos, position);
-                TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
-            }
-        }
-    }   
+    //        if (HavePylonNearby(pos))
+    //        {
+    //            if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos))
+    //            {
+    //                //cout << "successful " << pos.x << " : " << pos.y << endl;
+    //                return true;
+    //            }
+    //        }
+    //        else
+    //        {
+    //            auto closet = FindClostest(nux.front()->pos, ramps);
+    //            TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
+    //        }
+    //    }
+    //}   
 
-    vector<Point2D> grids = CalculateGrid(start_location, 18);
+    vector<Point2D> grids = CalculateGrid(start_location, 20);
 
     Point2D farestEnemyBase = GetRandomEntry(game_info.enemy_start_locations);
     for (auto temp : game_info.enemy_start_locations)
@@ -1485,7 +1494,7 @@ bool GoingMerry::TryBuildPhotonCannon()
 
         if (observation->IsPlacable(grid) && IsNextToCliff(grid))
         {
-            vector<Point2D> points = GetOffSetPoints(grid, UNIT_TYPEID::PROTOSS_PHOTONCANNON);
+            vector<Point2D> points = GetOffSetPoints(grid);
 
             for (auto point : points)
             {
@@ -1889,16 +1898,80 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     //      14      0:20      Pylon
     if (pylon_count < 1 &&
         assimilator_count >= 0) {
-        if (TryBuildPylon()) {
-            printLog("PYLON 1");
+        if (!ramps.empty())
+        {
+            bool flag = false;
+            for (auto ramp : ramps)
+            {
+                double differenceX = start_location.x - ramp.x;
+                double differenceY = start_location.y - ramp.y;
+                double tempx = ramp.x;
+                double tempy = ramp.y;
+
+                tempx = differenceX > 0 ? tempx + 2 : tempx - 2;
+                //tempx = abs(differenceX) <= 5 ? start_location.x : tempx;
+                tempy = differenceY > 0 ? tempy + 2 : tempy - 2;
+                //tempy = abs(differenceY) <= 5 ? start_location.y : tempy;
+                if (flag)
+                {
+                    break;
+                }
+                /*auto points = GetOffSetPoints(ramp);
+                for (auto point : points)
+                {*/
+                    if (TryBuildStructure(ABILITY_ID::BUILD_PYLON, UNIT_TYPEID::PROTOSS_PROBE, Point2D(tempx,tempy)))
+                    {
+                        flag = true;
+                        printLog("1");
+                        break;
+                    }
+                //}
+            }
+            if (!flag)
+            {
+                TryBuildPylon();
+            }
+   
+        }
+        else {
+            if (TryBuildPylon())
+            {
+                printLog("Pylon 1");
+            }
         }
     }
 
     //      15      0:40      Gateway
     if (pylon_count >= 0 &&
         warpgate_count + gateway_count < 1) {
-        if (TryBuildGateway()) {
-            printLog("GATEWAY 1");
+        if (!ramps.empty())
+        {
+            bool flag = false;
+            for (auto ramp : ramps)
+            {
+                if (flag)
+                    break;
+                auto points = GetOffSetPoints(ramp);
+                for (auto point : points)
+                {
+                    if (flag)
+                        break;
+                    if (TryBuildStructure(ABILITY_ID::BUILD_GATEWAY, UNIT_TYPEID::PROTOSS_PROBE, point))
+                    {
+                        flag = true;
+                        printLog("2");
+                    }
+                }
+            }
+            if (!flag)
+                TryBuildGateway();
+        }
+        else {
+            //std::cout<<"GATEWAY 1 0:40"<<std::endl;
+            if (TryBuildGateway())
+            {
+                printLog("GateWay 1");
+            }
         }
     }
 
