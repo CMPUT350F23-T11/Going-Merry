@@ -854,7 +854,7 @@ bool GoingMerry::HaveCannonNearby(Point2D& point)
 #pragma endregion
 
 
-#pragma region Try Build Basic Structures
+#pragma region Build Structure Functions
 
 bool GoingMerry::TryBuildForge() {
     //const ObservationInterface* observation = Observation();
@@ -3399,12 +3399,10 @@ bool GoingMerry::BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID 
 vector<Point2D> GoingMerry::CalculateGrid(Point2D centre, int range)
 {
     vector<Point2D> res;
-    //cout << "1-1" << endl;
     float minX = centre.x - range < 0 ? 0 : centre.x - range;
     float minY = centre.y - range < 0 ? 0 : centre.y - range;
     float maxX = centre.x + range > game_info.width ? game_info.width : centre.x + range;
     float maxY = centre.y + range > game_info.height ? game_info.height : centre.y + range;
-    //cout << minX << " " << maxX << " " << minY << " " << maxY << endl;
 
     for (double i = minX; i <= maxX; i++)
     {
@@ -3413,34 +3411,25 @@ vector<Point2D> GoingMerry::CalculateGrid(Point2D centre, int range)
             res.push_back(Point2D(i, j));
         }
     }
-    //cout << "1-3" << endl;
-    //cout << res.size() << endl;
-    //cout << res[0].x << " " << res[0].y << endl;
-    //cout << res[res.size() - 1].x << " " << res[res.size() - 1].y << endl;
+
     return res;
 }
 
 vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
 {
     vector<Point2D> grid = CalculateGrid(Point2D(centre.x, centre.y), range);
-    //cout << "2-1" << endl;
     vector<Point2D> ramp;
 
-    //cout << "grid " << grid.size() << endl;
     for (const auto point : grid)
     {
-        //cout << point.x << " " << point.y << endl;
         if (!observation->IsPlacable(point) && observation->IsPathable(point))
         {
             ramp.push_back(point);
         }
     }
 
-    //cout << "ramp " << ramp.size() << endl;
-
     if (ramp.size() == 0)
     {
-        //cout << "2-0" << endl;
         return ramp;
     }
     
@@ -3456,12 +3445,8 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
     averageX /= ramp.size();
     averageY /= ramp.size();
 
-    //cout << "2-3" << endl;
-
     for (vector<Point2D>::iterator point = ramp.begin(); point < ramp.end();)
-    {
-        //bool temp = help(*point);
-           
+    {           
         if (Distance2D(*point, Point2D(averageX, averageY)) > 8)
         {
             point = ramp.erase(point);
@@ -3471,7 +3456,7 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
             point++; 
         }
     }
-    //cout << "2-4 " << ramp.size() << endl;
+
     return ramp;
 }
 
@@ -3492,8 +3477,6 @@ Point2D GoingMerry::FindNearestRampPoint(const Unit* centre)
             closet = point;
         }
     }
-    //cout << "3" << endl;
-    //cout << closet.x << " " << closet.y << endl << endl;
 
     return closet;
 }
@@ -3504,7 +3487,6 @@ vector<Point2D> GoingMerry::CalculatePlacableRamp(const Unit* centre)
     auto clostest = FindNearestRampPoint(centre);
     if (clostest.x == -1 && clostest.y == -1)
     {
-        //cout << 'NONE' << endl;
         return wall;
     }
 

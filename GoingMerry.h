@@ -16,15 +16,15 @@ using namespace std;
 
 class GoingMerry : public Agent {
 public:
-    int max_worker_count_ = 70;
-    
+
+#pragma region Game Managers
+
 	void OnGameStart();
 	void OnStep();
 	void OnUnitIdle(const Unit* unit);
 	void OnUpgradeCompleted(UpgradeID upgrade);
 
-	int ideal_worker_count = 70;
-    std::vector<Point3D> expansions_;
+#pragma endregion
 
 private:
 
@@ -58,6 +58,8 @@ private:
 
 	const Unit* scouting_probe = nullptr;
 	int possible_starts_visited = 0;
+	int ideal_worker_count = 70;
+	int max_worker_count_ = 70;
 	int num_scouts = 2;
 	int num_harassers = 10;
 	int target_worker_count = 15;
@@ -79,6 +81,7 @@ private:
 
 	Point3D start_location;
 	Point3D staging_location;
+	std::vector<Point3D> expansions_;
 	
 #pragma endregion
 
@@ -89,20 +92,18 @@ private:
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D position, UNIT_TYPEID unit_type, bool is_expansion = false);
 	bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool is_expansion = false);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
-	//bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
     bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
     
     //Try build structure given a location. This is used most of the time
     bool TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false);
     bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
-    
     bool TryBuildProbe();
     //An estimate of how many workers we should have based on what buildings we have
     int GetExpectedWorkers(UNIT_TYPEID vespene_building_type);
 #pragma endregion
 
-#pragma region  assistant functions
+#pragma region  Assistant Functions
 
     void MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
     void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
@@ -120,86 +121,107 @@ private:
 
 #pragma endregion
 
-#pragma region Build structure functions
+#pragma region Build Structure Functions
 
 	bool TryExpandBase(ABILITY_ID build_ability, UnitTypeID unit_type);
+
 	bool TryBuildForge();
+
 	bool TryBuildCyberneticsCore();
+
 	bool TryBuildAssimilator();
+
     bool TryBuildGas(AbilityID build_ability, UnitTypeID worker_type, Point2D base_location);
+
 	bool TryBuildPylon();
-	bool TryBuildDarkShrine();
+
 	bool TryBuildFleetBeacon();
+
 	bool TryBuildGateway();
+
 	bool TryBuildPhotonCannon();
+
 	bool TryBuildRoboticsFacility();
+
 	bool TryBuildStargate();
+
 	bool TryBuildTemplarArchives();
+
 	bool TryBuildTwilightCouncil();
+
 	bool TryBuildWarpGate();
+
 	bool TryBuildShieldBattery();
-	bool TryBuildStasisWard();
+
 	bool TryBuildRoboticsBay();
+
 	bool TryBuildExpansionNexus();
-    
+
     bool TryBuildUnit(AbilityID ability_type_for_unit, UnitTypeID unit_type);
-    bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type);
+
     bool TryWarpInUnit(ABILITY_ID ability_type_for_unit);
 
 #pragma endregion
 
-#pragma region  worker command
+#pragma region Try Send Scouting and Harassers
 
-	//void Mine(const Unit* unit, const Unit* nexus);
-	//void CollectVespeneGas(const Unit* unit, const Unit* assimilator);
-	//void WorkerHub(const Unit* unit);
+	void TrySendScouts();  // Check if possible to send scouts
 
-#pragma endregion
+	void SendScouting();  // Send scouts to points of interest
 
-#pragma region strategy
+	sc2::Point2D GetScoutMoveLocation();  // Generate a target location for scouts
 
-	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);
-
-	void TrySendScouts();
-	void SendScouting();
-	sc2::Point2D GetScoutMoveLocation();
 	void MoveScouts();
-	void SendHarassing(const sc2::Unit *base);
-	void TrySendHarassing(const sc2::Unit *base);
-	void CheckIfAlive(int idetifier);
+
+	void SendHarassing(const sc2::Unit *base);  // Send harassment units to base
+
+	void TrySendHarassing(const sc2::Unit *base);  // Check if possible to send harassers
+
+	void CheckIfAlive(int idetifier);  // Check if unit is alive by unique identifier
 
 	void FindEnemyRace();
 
 #pragma endregion
 
-#pragma region map analysis
+#pragma region Map Analysis
 
 	Point2D GetRandomMapLocation();
+
 	vector<Point2D> CalculateGrid(Point2D centre, int range);
+
 	vector<Point2D> FindRamp(Point3D centre, int range);
+
 	Point2D FindNearestRampPoint(const Unit* centre);
+
 	vector<Point2D> CalculatePlacableRamp(const Unit* centre);
+
 	bool IsNextToCliff(const Point2D location);
 
 #pragma endregion
 
-# pragma region manage army
+# pragma region Manage Army
 
-	void ManageUpgrades();
-	bool TryBuildArmy();
-	void TryBuildBaseArmy();
-	bool TryBuildAdaptiveArmy();
+	void ManageUpgrades();  // Manage upgrades for bot
 
-	void ManageArmy();
-	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);
-	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // TODO
-	bool BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID ability_type, UNIT_TYPEID production_structure_type, bool warp = false);
+	bool TryBuildArmy();  // Build original fixed army composition
+
+	void TryBuildBaseArmy();  // Build basic army of Zealots and Stalkers (changes as facilities are unlocked)
+
+	bool TryBuildAdaptiveArmy();  // Build adaptive army based on information obtained about enemies
+
+	void ManageArmy();  // Manage bot's army units
+
+	void AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position);  // Manage bot's attack logic
+
+	void DefendWithUnit(const Unit* unit, const ObservationInterface* observation);  // Manage bot's defence logic
+
+	bool BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID ability_type, UNIT_TYPEID production_structure_type, bool warp = false);  // Build equivalent unit to reference based on adaptive logic
 
 #pragma endregion
 
 #pragma region Debug Tools
 
-	void printLog(string message, bool step = false);
+	void printLog(string message, bool step = false);  // Use to print debug statements
 
 #pragma endregion
 
