@@ -16,7 +16,6 @@ using namespace std;
 
 class GoingMerry : public Agent {
 public:
-    int max_worker_count_ = 70;
     
 	void OnGameStart();
 	void OnStep();
@@ -24,21 +23,19 @@ public:
 	void OnUpgradeCompleted(UpgradeID upgrade);
 
 	int ideal_worker_count = 70;
-    std::vector<Point3D> expansions_;
 
 private:
 
 #pragma region Data
 
-	bool debug = false;  // Toggle debug statements
+	const ObservationInterface* observation;
 
-	int enemy_race = -1;  // -1: Not yet determined, 0: Protoss, 1: Terran, 2: Zerg
+	bool debug = false;  // Toggle debug statements
 	bool enemy_air_units = false;
 	bool foundBase = false;
 	bool launchedHarass = false;
 	bool launchedAttack = false;
-
-	const ObservationInterface* observation;
+	bool startHarass = false;
 	bool warpgate_researched = false;
     bool thermal_lance_researched = false;
     bool ground_wep_1_researched = false;
@@ -53,11 +50,11 @@ private:
 	std::vector<Point3D> expansions;
 	std::vector<Point2D> base_locations;
 
-
-	bool startHarass = false;
-
 	const Unit* scouting_probe = nullptr;
+
+	int enemy_race = -1;  // -1: Not yet determined, 0: Protoss, 1: Terran, 2: Zerg
 	int possible_starts_visited = 0;
+	int max_worker_count_ = 70;
 	int num_scouts = 2;
 	int num_harassers = 10;
 	int target_worker_count = 15;
@@ -82,7 +79,7 @@ private:
 	
 #pragma endregion
 
-#pragma region basic building function
+#pragma region TryBuildStructure Variants
 
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D position, UNIT_TYPEID unit_type, bool is_expansion = false);
@@ -98,20 +95,20 @@ private:
     bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
     
     bool TryBuildProbe();
-    //An estimate of how many workers we should have based on what buildings we have
-    int GetExpectedWorkers(UNIT_TYPEID vespene_building_type);
+    
 #pragma endregion
 
 #pragma region  assistant functions
 
+	//An estimate of how many workers we should have based on what buildings we have
+	int GetExpectedWorkers(UNIT_TYPEID vespene_building_type);
     void MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
     void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
     
 	size_t CountUnitType(UNIT_TYPEID unit_type);
 	size_t CountEnemyUnitType(UNIT_TYPEID unit_type);
 	const Unit* FindNearestMineralPatch(const Point2D& start);
-	//bool AlreadyBuilt(const Unit* ref, const Units units);
-	//bool help(const Point2D& point);
+
 	bool IsNextToRamp(Point2D point);
 	bool HavePylonNearby(Point2D& point);
 	bool HaveCannonNearby(Point2D& point);

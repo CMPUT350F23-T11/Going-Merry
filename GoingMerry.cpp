@@ -145,8 +145,6 @@ void GoingMerry::OnStep()
     if (TryBuildProbe()) {
         return;
     }
-
-    if ()
 }
 
 void GoingMerry::OnUnitIdle(const Unit* unit)
@@ -183,6 +181,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
     }
 }
 
+// Change upgrade status
 void GoingMerry::OnUpgradeCompleted(UpgradeID upgrade)
 {
     switch (upgrade.ToType())
@@ -229,7 +228,6 @@ void GoingMerry::printLog(string message, bool step)
     if (debug)
     {
         cout << "DEBUG LOG: " << message << endl;
-        cout << "ARMY SIZE: " << army.size() << endl;
 
         if (step)
         {
@@ -409,7 +407,7 @@ void GoingMerry::ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_
 #pragma endregion
 
 
-#pragma region TryBuildStructure()
+#pragma region TryBuildStructure Variants
 
 bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
 
@@ -959,19 +957,6 @@ bool GoingMerry::TryBuildCyberneticsCore()
     return TryBuildStructureNearPylon(ABILITY_ID::BUILD_CYBERNETICSCORE, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
-bool GoingMerry::TryBuildDarkShrine()
-{
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL) < 1)
-    {
-        return false;
-    }
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_DARKSHRINE) > 0)
-    {
-        return false;
-    }
-    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_DARKSHRINE, UNIT_TYPEID::PROTOSS_PROBE);
-}
-
 bool GoingMerry::TryBuildFleetBeacon()
 {
     if (CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE) < 1)
@@ -1241,15 +1226,6 @@ bool GoingMerry::TryBuildUnit(AbilityID ability_type_for_unit, UnitTypeID unit_t
     return false;
 }
 
-bool GoingMerry::GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type) {
-    Units my_units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
-    if (!my_units.empty()) {
-        unit_out = GetRandomEntry(my_units);
-        return true;
-    }
-    return false;
-}
-
 bool GoingMerry::TryWarpInUnit(ABILITY_ID ability_type_for_unit) {
     const ObservationInterface* observation = Observation();
     std::vector<PowerSource> power_sources = observation->GetPowerSources();
@@ -1428,7 +1404,7 @@ void GoingMerry::ManageUpgrades()
 #pragma endregion
 
 
-#pragma region Try Build Defense Structure
+#pragma region Try Build Defence Structures
 
 bool GoingMerry::TryBuildPhotonCannon()
 {
@@ -1439,6 +1415,7 @@ bool GoingMerry::TryBuildPhotonCannon()
     if (nux.size() == 0)
         return false;
 
+    // Get ramp position
     auto position = CalculatePlacableRamp(nux.front());
 
     if (position.size() != 0)
@@ -1452,18 +1429,19 @@ bool GoingMerry::TryBuildPhotonCannon()
             {
                 if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos))
                 {
-                    cout << "successful " << pos.x << " : " << pos.y << endl;
                     return true;
                 }
             }
             else
             {
+                // Build pylon
                 auto closet = FindClostest(nux.front()->pos, position);
                 TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
             }
         }
     }   
 
+    // Get nearby grids
     vector<Point2D> grids = CalculateGrid(start_location, 18);
 
     Point2D farestEnemyBase = GetRandomEntry(game_info.enemy_start_locations);
@@ -1475,6 +1453,7 @@ bool GoingMerry::TryBuildPhotonCannon()
         }
     }
 
+    // Check grids for valid position
     for (auto grid : grids)
     {
         if (HaveCannonNearby(grid))
@@ -1512,15 +1491,10 @@ bool GoingMerry::TryBuildShieldBattery()
     return true;
 }
 
-bool GoingMerry::TryBuildStasisWard()
-{
-    return false;
-}
-
 #pragma endregion
 
 
-#pragma region Strategy
+#pragma region Get Functions
 
 Point2D GoingMerry::GetRandomMapLocation()
 {
@@ -1537,6 +1511,15 @@ Point2D GoingMerry::GetRandomMapLocation()
     float randomY = sc2::GetRandomInteger(minY, maxY - 1) + sc2::GetRandomFraction();
 
     return sc2::Point2D(randomX, randomY);
+}
+
+bool GoingMerry::GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type) {
+    Units my_units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
+    if (!my_units.empty()) {
+        unit_out = GetRandomEntry(my_units);
+        return true;
+    }
+    return false;
 }
 
 #pragma endregion
@@ -1920,7 +1903,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
 
-    //      19      1:13      Gateway (x3), moving gateway from 2nd base here
+    //      19      1:13      Gateway (x2), moving gateway from 2nd base here
     if (warpgate_count + gateway_count < 2 &&
         assimilator_count >= 1 &&
         cybernetics_count >= 1) {
@@ -2063,7 +2046,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         forge_count >= 1 &&
         stargate_count < 1) {
         if (TryBuildStargate()) {
-            //std::cout<<"STARGATE"<<std::endl;
             printLog("STARGATE 1");
         }
     }
@@ -2167,13 +2149,11 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         twilight_count >= 1 &&
         stargate_count < 2) {
         if (TryBuildStargate()) {
-            //std::cout<<"STARGATE"<<std::endl;
             printLog("STARGATE 2");
         }
 
         if (cannon_count < max_cannon_count) {
             if (TryBuildPhotonCannon()) {
-                //std::cout << "CANNON x5 7:58" << std::endl;
                 printLog("CANON");
             }
             else if (TryBuildStructureNearPylon(ABILITY_ID::BUILD_PHOTONCANNON, UNIT_TYPEID::PROTOSS_PROBE))
@@ -2460,9 +2440,9 @@ void GoingMerry::TryBuildBaseArmy()
     }
 }
 
-
 bool GoingMerry::TryBuildArmy()
 {
+    // Builds original fixed army composition
     const ObservationInterface* observation = Observation();
 
     // Get army unit counts
@@ -3004,6 +2984,7 @@ void GoingMerry::ManageArmy()
                 continue;
             }
 
+            // If army composition meets requirement, launch attack
             if ((army.size() > (20 + num_harassers + num_scouts)) && (unit->shield > (unit->shield_max - 10)))
             {
                 if (enemy_bases.size() > 0 && !launchedHarass) // only send harass if an enemy base is found
@@ -3113,7 +3094,6 @@ void GoingMerry::ManageArmy()
 
 void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* observation)
 {
-
     // Safety check: assert unit is not scout or harasser
     if (std::find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
         return;
@@ -3135,7 +3115,6 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
         {
             float d = Distance2D(enemy->pos, base->pos);
             if (d < 10) {
-                //cout << "Defending base at (" << base->pos.x << "," << base->pos.y << ")" << endl;
                 enemiesNearby = true;
                 AttackWithUnit(unit, observation, enemy->pos);
             }
