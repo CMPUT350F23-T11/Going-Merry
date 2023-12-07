@@ -848,7 +848,7 @@ bool GoingMerry::HaveCannonNearby(Point2D& point)
 #pragma endregion
 
 
-#pragma region Try Build Basic Structures
+#pragma region Build Structure Functions
 
 bool GoingMerry::TryBuildForge() {
     //const ObservationInterface* observation = Observation();
@@ -3526,7 +3526,6 @@ vector<Point2D> GoingMerry::CalculatePlacableRamp(const Unit* centre)
     auto clostest = FindNearestRampPoint(centre);
     if (clostest.x == -1 && clostest.y == -1)
     {
-        //cout << 'NONE' << endl;
         return wall;
     }
 
