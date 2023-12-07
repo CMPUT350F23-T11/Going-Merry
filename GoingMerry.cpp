@@ -1295,6 +1295,7 @@ void GoingMerry::ManageUpgrades()
     size_t n_base = CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS);  // prioritize maintaining number of bases over upgrades
     size_t stargate_count = CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE);
 
+    // Beginning of upgrades
     if (upgrades.empty())
     {
         TryBuildUnit(ABILITY_ID::RESEARCH_WARPGATE, UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
@@ -1337,7 +1338,7 @@ void GoingMerry::ManageUpgrades()
                 TryBuildUnit(ABILITY_ID::RESEARCH_CHARGE, UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL);  // For Zealot units (if using)
                 OnUpgradeCompleted(UPGRADE_ID::CHARGE);
                 
-                // GROUND
+                // GROUND UPGRADES
                 TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSGROUNDWEAPONS, UNIT_TYPEID::PROTOSS_FORGE);
                 TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSGROUNDARMOR, UNIT_TYPEID::PROTOSS_FORGE);
                 if(ground_wep_2_researched){
@@ -1345,7 +1346,7 @@ void GoingMerry::ManageUpgrades()
                 }
                 
                 
-                // AIR
+                // AIR UPGRADES
                 if(stargate_count > 0){
                     TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSAIRWEAPONS, UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
                     TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSAIRARMOR, UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
@@ -1355,7 +1356,7 @@ void GoingMerry::ManageUpgrades()
             }
         }
         
-        // chronoboost upgrades
+        // Use chronoboost on upgrades
         Units cores = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE));
         Units forges = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_FORGE));
         Units bays = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSBAY));

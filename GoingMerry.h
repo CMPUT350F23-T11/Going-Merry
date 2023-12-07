@@ -88,12 +88,15 @@ private:
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point2D pylon, float radius, UNIT_TYPEID unit_type);
 	//bool TryBuildStructure(ABILITY_ID ability_type_for_structure, Point3D pylon, float radius, UNIT_TYPEID unit_type);
 	bool TryBuildStructure(ABILITY_ID ability_type_for_structure, const Unit* target, UNIT_TYPEID unit_type);
-    bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
     
+    // Used for assimilators
+    bool TryBuildStructure(AbilityID ability_type_for_structure, UnitTypeID unit_type, Tag location_tag);
     //Try build structure given a location. This is used most of the time
     bool TryBuildStructureForPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type, Point2D location, bool isExpansion = false);
+    // Identifies a pylon and builds a structure in its radius.
     bool TryBuildStructureNearPylon(AbilityID ability_type_for_structure, UnitTypeID unit_type);
     
+    // Check if number of workers exceeds ideal count, supply used exceeds cap, and if base requires more workers.
     bool TryBuildProbe();
     
 #pragma endregion
@@ -102,7 +105,9 @@ private:
 
 	//An estimate of how many workers we should have based on what buildings we have
 	int GetExpectedWorkers(UNIT_TYPEID vespene_building_type);
+    // For each idled worker, checks if each base/assimilator has their ideal number of harvester.
     void MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type);
+    // Ensure that we do not over or under saturate any base.
     void ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type);
     
 	size_t CountUnitType(UNIT_TYPEID unit_type);
@@ -139,8 +144,10 @@ private:
 	bool TryBuildRoboticsBay();
 	bool TryBuildExpansionNexus();
     
+    // Use for gateway units, or for researching upgrades
     bool TryBuildUnit(AbilityID ability_type_for_unit, UnitTypeID unit_type);
     bool GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type);
+    // Use for warpgates
     bool TryWarpInUnit(ABILITY_ID ability_type_for_unit);
 
 #pragma endregion
