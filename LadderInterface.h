@@ -144,19 +144,6 @@ static void RunBot(int argc, char *argv[], sc2::Agent *Agent, sc2::Race race)
 
     sc2::Coordinator coordinator;
 
-    // const char* kReplayFolder = "C:/SC2/Replays/001.SC2Replay"; // For Windows
-	// const char* kReplayFolder = "~/Desktop/SC2/Replays/001.SC2Replay";  // For Mac
-    // coordinator.SaveReplayList(kReplayFolder);
-
-    // if (!coordinator.SetReplayPath(kReplayFolder))
-    // {
-    //     cout << "Unable to find replays." << endl;
-    //     return;
-    // }
-
-    // ReplayObserver replay_observer;
-    // coordinator.AddReplayObserver(&replay_observer);
-
     int num_agents;
     if (Options.ComputerOpponent) {
         num_agents = 1;

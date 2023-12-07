@@ -145,8 +145,6 @@ void GoingMerry::OnStep()
     if (TryBuildProbe()) {
         return;
     }
-
-    if ()
 }
 
 void GoingMerry::OnUnitIdle(const Unit* unit)
@@ -183,6 +181,7 @@ void GoingMerry::OnUnitIdle(const Unit* unit)
     }
 }
 
+// Change upgrade status
 void GoingMerry::OnUpgradeCompleted(UpgradeID upgrade)
 {
     switch (upgrade.ToType())
@@ -229,7 +228,6 @@ void GoingMerry::printLog(string message, bool step)
     if (debug)
     {
         cout << "DEBUG LOG: " << message << endl;
-        cout << "ARMY SIZE: " << army.size() << endl;
 
         if (step)
         {
@@ -242,174 +240,7 @@ void GoingMerry::printLog(string message, bool step)
 #pragma endregion
 
 
-#pragma region Worker Commands
-
-bool GoingMerry::TryBuildProbe()
-{
-    const ObservationInterface* observation = Observation();
-    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-
-    if (observation->GetFoodWorkers() >= ideal_worker_count)
-    {
-        return false;
-    }
-
-    if (observation->GetFoodUsed() >= observation->GetFoodCap())
-    {
-        return false;
-    }
-
-    for (const auto& base : bases)
-    {
-        if (base->assigned_harvesters < base->ideal_harvesters && base->build_progress == 1)
-        {
-            if (observation->GetMinerals() >= 50)
-            {
-                return TryBuildUnit(ABILITY_ID::TRAIN_PROBE, UNIT_TYPEID::PROTOSS_NEXUS);
-            }
-        }
-    }
-
-    return false;
-}
-
-//An estimate of how many workers we should have based on what buildings we have
-int GoingMerry::GetExpectedWorkers(UNIT_TYPEID vespene_building_type) {
-    const ObservationInterface* observation = Observation();
-    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
-    int expected_workers = 0;
-    for (const auto& base : bases) {
-        if (base->build_progress != 1) {
-            continue;
-        }
-        expected_workers += base->ideal_harvesters;
-    }
-
-    for (const auto& geyser : geysers) {
-        if (geyser->vespene_contents > 0) {
-            if (geyser->build_progress != 1) {
-                continue;
-            }
-            expected_workers += geyser->ideal_harvesters;
-        }
-    }
-
-    return expected_workers;
-}
-
-// Mine the nearest mineral to Town hall.
-// If we don't do this, probes may mine from other patches if they stray too far from the base after building.
-void GoingMerry::MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type) {
-    const ObservationInterface* observation = Observation();
-    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
-
-    const Unit* valid_mineral_patch = nullptr;
-
-    if (bases.empty()) {
-        return;
-    }
-
-    for (const auto& geyser : geysers) {
-        if (geyser->assigned_harvesters < geyser->ideal_harvesters) {
-            Actions()->UnitCommand(worker, worker_gather_command, geyser);
-            return;
-        }
-    }
-
-    //Search for a base that is missing workers.
-    for (const auto& base : bases) {
-        //If we have already mined out here skip the base.
-        if (base->ideal_harvesters == 0 || base->build_progress != 1) {
-            continue;
-        }
-        if (base->assigned_harvesters < base->ideal_harvesters) {
-            valid_mineral_patch = FindNearestMineralPatch(base->pos);
-            Actions()->UnitCommand(worker, worker_gather_command, valid_mineral_patch);
-            return;
-        }
-    }
-
-    if (!worker->orders.empty()) {
-        return;
-    }
-
-    //If all workers spots are filled just go to any base.
-    const Unit* random_base = GetRandomEntry(bases);
-    valid_mineral_patch = FindNearestMineralPatch(random_base->pos);
-    Actions()->UnitCommand(worker, worker_gather_command, valid_mineral_patch);
-}
-
-// To ensure that we do not over or under saturate any base.
-void GoingMerry::ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type) {
-    const ObservationInterface* observation = Observation();
-    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
-
-    if (bases.empty()) {
-        return;
-    }
-
-    for (const auto& base : bases) {
-        //If we have already mined out or still building here skip the base.
-        if (base->ideal_harvesters == 0 || base->build_progress != 1) {
-            continue;
-        }
-        //if base is
-        if (base->assigned_harvesters > base->ideal_harvesters) {
-            Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(worker_type));
-
-            for (const auto& worker : workers) {
-                if (!worker->orders.empty()) {
-                    if (worker->orders.front().target_unit_tag == base->tag) {
-                        //This should allow them to be picked up by mineidleworkers()
-                        MineIdleWorkers(worker, worker_gather_command,vespene_building_type);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(worker_type));
-    for (const auto& geyser : geysers) {
-        if (geyser->ideal_harvesters == 0 || geyser->build_progress != 1) {
-            continue;
-        }
-        if (geyser->assigned_harvesters > geyser->ideal_harvesters) {
-            for (const auto& worker : workers) {
-                if (!worker->orders.empty()) {
-                    if (worker->orders.front().target_unit_tag == geyser->tag) {
-                        //This should allow them to be picked up by mineidleworkers()
-                        MineIdleWorkers(worker, worker_gather_command, vespene_building_type);
-                        return;
-                    }
-                }
-            }
-        }
-        else if (geyser->assigned_harvesters < geyser->ideal_harvesters) {
-            for (const auto& worker : workers) {
-                if (!worker->orders.empty()) {
-                    //This should move a worker that isn't mining gas to gas
-                    const Unit* target = observation->GetUnit(worker->orders.front().target_unit_tag);
-                    if (target == nullptr) {
-                        continue;
-                    }
-                    if (target->unit_type != vespene_building_type) {
-                        //This should allow them to be picked up by mineidleworkers()
-                        MineIdleWorkers(worker, worker_gather_command, vespene_building_type);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-}
-
-#pragma endregion
-
-
-#pragma region TryBuildStructure()
+#pragma region TryBuildStructure Variants
 
 bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
 
@@ -474,7 +305,7 @@ bool GoingMerry::TryBuildStructure(AbilityID ability_type_for_structure, UnitTyp
         return false;
     }
     if (!is_expansion) {
-        for (const auto& expansion : expansions_) {
+        for (const auto& expansion : expansions) {
             if (Distance2D(location, Point2D(expansion.x, expansion.y)) < 7) {
                 return false;
             }
@@ -708,7 +539,7 @@ bool GoingMerry::TryBuildStructureForPylon(AbilityID ability_type_for_structure,
         return false;
     }
     if (!isExpansion) {
-        for (const auto& expansion : expansions_) {
+        for (const auto& expansion : expansions) {
             if (Distance2D(location, Point2D(expansion.x, expansion.y)) < 7) {
                 return false;
             }
@@ -752,6 +583,169 @@ bool GoingMerry::TryBuildStructureNearPylon(AbilityID ability_type_for_structure
 
 
 #pragma region Assistant Functions
+
+bool GoingMerry::TryBuildProbe()
+{
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+
+    if (observation->GetFoodWorkers() >= ideal_worker_count)
+    {
+        return false;
+    }
+
+    if (observation->GetFoodUsed() >= observation->GetFoodCap())
+    {
+        return false;
+    }
+
+    for (const auto& base : bases)
+    {
+        if (base->assigned_harvesters < base->ideal_harvesters && base->build_progress == 1)
+        {
+            if (observation->GetMinerals() >= 50)
+            {
+                return TryBuildUnit(ABILITY_ID::TRAIN_PROBE, UNIT_TYPEID::PROTOSS_NEXUS);
+            }
+        }
+    }
+
+    return false;
+}
+
+//An estimate of how many workers we should have based on what buildings we have
+int GoingMerry::GetExpectedWorkers(UNIT_TYPEID vespene_building_type) {
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
+    int expected_workers = 0;
+    for (const auto& base : bases) {
+        if (base->build_progress != 1) {
+            continue;
+        }
+        expected_workers += base->ideal_harvesters;
+    }
+
+    for (const auto& geyser : geysers) {
+        if (geyser->vespene_contents > 0) {
+            if (geyser->build_progress != 1) {
+                continue;
+            }
+            expected_workers += geyser->ideal_harvesters;
+        }
+    }
+
+    return expected_workers;
+}
+
+// Mine the nearest mineral to Town hall.
+// If we don't do this, probes may mine from other patches if they stray too far from the base after building.
+void GoingMerry::MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type) {
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
+
+    const Unit* valid_mineral_patch = nullptr;
+
+    if (bases.empty()) {
+        return;
+    }
+
+    for (const auto& geyser : geysers) {
+        if (geyser->assigned_harvesters < geyser->ideal_harvesters) {
+            Actions()->UnitCommand(worker, worker_gather_command, geyser);
+            return;
+        }
+    }
+
+    //Search for a base that is missing workers.
+    for (const auto& base : bases) {
+        //If we have already mined out here skip the base.
+        if (base->ideal_harvesters == 0 || base->build_progress != 1) {
+            continue;
+        }
+        if (base->assigned_harvesters < base->ideal_harvesters) {
+            valid_mineral_patch = FindNearestMineralPatch(base->pos);
+            Actions()->UnitCommand(worker, worker_gather_command, valid_mineral_patch);
+            return;
+        }
+    }
+
+    if (!worker->orders.empty()) {
+        return;
+    }
+
+    //If all workers spots are filled just go to any base.
+    const Unit* random_base = GetRandomEntry(bases);
+    valid_mineral_patch = FindNearestMineralPatch(random_base->pos);
+    Actions()->UnitCommand(worker, worker_gather_command, valid_mineral_patch);
+}
+
+// To ensure that we do not over or under saturate any base.
+void GoingMerry::ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type) {
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
+
+    if (bases.empty()) {
+        return;
+    }
+
+    for (const auto& base : bases) {
+        //If we have already mined out or still building here skip the base.
+        if (base->ideal_harvesters == 0 || base->build_progress != 1) {
+            continue;
+        }
+        //if base is
+        if (base->assigned_harvesters > base->ideal_harvesters) {
+            Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(worker_type));
+
+            for (const auto& worker : workers) {
+                if (!worker->orders.empty()) {
+                    if (worker->orders.front().target_unit_tag == base->tag) {
+                        //This should allow them to be picked up by mineidleworkers()
+                        MineIdleWorkers(worker, worker_gather_command,vespene_building_type);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(worker_type));
+    for (const auto& geyser : geysers) {
+        if (geyser->ideal_harvesters == 0 || geyser->build_progress != 1) {
+            continue;
+        }
+        if (geyser->assigned_harvesters > geyser->ideal_harvesters) {
+            for (const auto& worker : workers) {
+                if (!worker->orders.empty()) {
+                    if (worker->orders.front().target_unit_tag == geyser->tag) {
+                        //This should allow them to be picked up by mineidleworkers()
+                        MineIdleWorkers(worker, worker_gather_command, vespene_building_type);
+                        return;
+                    }
+                }
+            }
+        }
+        else if (geyser->assigned_harvesters < geyser->ideal_harvesters) {
+            for (const auto& worker : workers) {
+                if (!worker->orders.empty()) {
+                    //This should move a worker that isn't mining gas to gas
+                    const Unit* target = observation->GetUnit(worker->orders.front().target_unit_tag);
+                    if (target == nullptr) {
+                        continue;
+                    }
+                    if (target->unit_type != vespene_building_type) {
+                        //This should allow them to be picked up by mineidleworkers()
+                        MineIdleWorkers(worker, worker_gather_command, vespene_building_type);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
     return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
@@ -957,19 +951,6 @@ bool GoingMerry::TryBuildCyberneticsCore()
         return false;
     }
     return TryBuildStructureNearPylon(ABILITY_ID::BUILD_CYBERNETICSCORE, UNIT_TYPEID::PROTOSS_PROBE);
-}
-
-bool GoingMerry::TryBuildDarkShrine()
-{
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL) < 1)
-    {
-        return false;
-    }
-    if (CountUnitType(UNIT_TYPEID::PROTOSS_DARKSHRINE) > 0)
-    {
-        return false;
-    }
-    return TryBuildStructureNearPylon(ABILITY_ID::BUILD_DARKSHRINE, UNIT_TYPEID::PROTOSS_PROBE);
 }
 
 bool GoingMerry::TryBuildFleetBeacon()
@@ -1241,15 +1222,6 @@ bool GoingMerry::TryBuildUnit(AbilityID ability_type_for_unit, UnitTypeID unit_t
     return false;
 }
 
-bool GoingMerry::GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type) {
-    Units my_units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
-    if (!my_units.empty()) {
-        unit_out = GetRandomEntry(my_units);
-        return true;
-    }
-    return false;
-}
-
 bool GoingMerry::TryWarpInUnit(ABILITY_ID ability_type_for_unit) {
     const ObservationInterface* observation = Observation();
     std::vector<PowerSource> power_sources = observation->GetPowerSources();
@@ -1319,6 +1291,7 @@ void GoingMerry::ManageUpgrades()
     size_t n_base = CountUnitType(UNIT_TYPEID::PROTOSS_NEXUS);  // prioritize maintaining number of bases over upgrades
     size_t stargate_count = CountUnitType(UNIT_TYPEID::PROTOSS_STARGATE);
 
+    // Beginning of upgrades
     if (upgrades.empty())
     {
         TryBuildUnit(ABILITY_ID::RESEARCH_WARPGATE, UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
@@ -1361,7 +1334,7 @@ void GoingMerry::ManageUpgrades()
                 TryBuildUnit(ABILITY_ID::RESEARCH_CHARGE, UNIT_TYPEID::PROTOSS_TWILIGHTCOUNCIL);  // For Zealot units (if using)
                 OnUpgradeCompleted(UPGRADE_ID::CHARGE);
                 
-                // GROUND
+                // GROUND UPGRADES
                 TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSGROUNDWEAPONS, UNIT_TYPEID::PROTOSS_FORGE);
                 TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSGROUNDARMOR, UNIT_TYPEID::PROTOSS_FORGE);
                 if(ground_wep_2_researched){
@@ -1369,7 +1342,7 @@ void GoingMerry::ManageUpgrades()
                 }
                 
                 
-                // AIR
+                // AIR UPGRADES
                 if(stargate_count > 0){
                     TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSAIRWEAPONS, UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
                     TryBuildUnit(ABILITY_ID::RESEARCH_PROTOSSAIRARMOR, UNIT_TYPEID::PROTOSS_CYBERNETICSCORE);
@@ -1379,7 +1352,7 @@ void GoingMerry::ManageUpgrades()
             }
         }
         
-        // chronoboost upgrades
+        // Use chronoboost on upgrades
         Units cores = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_CYBERNETICSCORE));
         Units forges = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_FORGE));
         Units bays = observation->GetUnits(Unit::Alliance::Self, IsUnit(UNIT_TYPEID::PROTOSS_ROBOTICSBAY));
@@ -1428,7 +1401,7 @@ void GoingMerry::ManageUpgrades()
 #pragma endregion
 
 
-#pragma region Try Build Defense Structure
+#pragma region Try Build Defence Structures
 
 bool GoingMerry::TryBuildPhotonCannon()
 {
@@ -1439,6 +1412,7 @@ bool GoingMerry::TryBuildPhotonCannon()
     if (nux.size() == 0)
         return false;
 
+    // Get ramp position
     auto position = CalculatePlacableRamp(nux.front());
 
     if (position.size() != 0)
@@ -1452,18 +1426,19 @@ bool GoingMerry::TryBuildPhotonCannon()
             {
                 if (TryBuildStructure(ABILITY_ID::BUILD_PHOTONCANNON, pos))
                 {
-                    cout << "successful " << pos.x << " : " << pos.y << endl;
                     return true;
                 }
             }
             else
             {
+                // Build pylon
                 auto closet = FindClostest(nux.front()->pos, position);
                 TryBuildStructure(ABILITY_ID::BUILD_PYLON, closet);
             }
         }
     }   
 
+    // Get nearby grids
     vector<Point2D> grids = CalculateGrid(start_location, 18);
 
     Point2D farestEnemyBase = GetRandomEntry(game_info.enemy_start_locations);
@@ -1475,6 +1450,7 @@ bool GoingMerry::TryBuildPhotonCannon()
         }
     }
 
+    // Check grids for valid position
     for (auto grid : grids)
     {
         if (HaveCannonNearby(grid))
@@ -1512,15 +1488,10 @@ bool GoingMerry::TryBuildShieldBattery()
     return true;
 }
 
-bool GoingMerry::TryBuildStasisWard()
-{
-    return false;
-}
-
 #pragma endregion
 
 
-#pragma region Strategy
+#pragma region Get Functions
 
 Point2D GoingMerry::GetRandomMapLocation()
 {
@@ -1537,6 +1508,15 @@ Point2D GoingMerry::GetRandomMapLocation()
     float randomY = sc2::GetRandomInteger(minY, maxY - 1) + sc2::GetRandomFraction();
 
     return sc2::Point2D(randomX, randomY);
+}
+
+bool GoingMerry::GetRandomUnit(const Unit*& unit_out, const ObservationInterface* observation, UnitTypeID unit_type) {
+    Units my_units = observation->GetUnits(Unit::Alliance::Self, IsUnit(unit_type));
+    if (!my_units.empty()) {
+        unit_out = GetRandomEntry(my_units);
+        return true;
+    }
+    return false;
 }
 
 #pragma endregion
@@ -1920,7 +1900,7 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
     }
 
 
-    //      19      1:13      Gateway (x3), moving gateway from 2nd base here
+    //      19      1:13      Gateway (x2), moving gateway from 2nd base here
     if (warpgate_count + gateway_count < 2 &&
         assimilator_count >= 1 &&
         cybernetics_count >= 1) {
@@ -2063,7 +2043,6 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         forge_count >= 1 &&
         stargate_count < 1) {
         if (TryBuildStargate()) {
-            //std::cout<<"STARGATE"<<std::endl;
             printLog("STARGATE 1");
         }
     }
@@ -2167,13 +2146,11 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
         twilight_count >= 1 &&
         stargate_count < 2) {
         if (TryBuildStargate()) {
-            //std::cout<<"STARGATE"<<std::endl;
             printLog("STARGATE 2");
         }
 
         if (cannon_count < max_cannon_count) {
             if (TryBuildPhotonCannon()) {
-                //std::cout << "CANNON x5 7:58" << std::endl;
                 printLog("CANON");
             }
             else if (TryBuildStructureNearPylon(ABILITY_ID::BUILD_PHOTONCANNON, UNIT_TYPEID::PROTOSS_PROBE))
@@ -2375,6 +2352,9 @@ void GoingMerry::BuildOrder(float ingame_time, uint32_t current_supply, uint32_t
 
 #pragma region Manage Army
 
+/// <summary>
+/// Build Base army
+/// </summary>
 void GoingMerry::TryBuildBaseArmy()
 {
     size_t zealot_count = CountUnitType(UNIT_TYPEID::PROTOSS_ZEALOT);
@@ -2460,9 +2440,13 @@ void GoingMerry::TryBuildBaseArmy()
     }
 }
 
-
+/// <summary>
+/// Build army
+/// </summary>
+/// <returns></returns>
 bool GoingMerry::TryBuildArmy()
 {
+    // Builds original fixed army composition
     const ObservationInterface* observation = Observation();
 
     // Get army unit counts
@@ -2609,6 +2593,10 @@ bool GoingMerry::TryBuildArmy()
     }
 }
 
+/// <summary>
+/// Build adaptive army
+/// </summary>
+/// <returns></returns>
 bool GoingMerry::TryBuildAdaptiveArmy()
 {
     const ObservationInterface* observation = Observation();
@@ -2756,6 +2744,12 @@ bool GoingMerry::TryBuildAdaptiveArmy()
     }
 }
 
+/// <summary>
+/// attack with units
+/// </summary>
+/// <param name="unit">unit list</param>
+/// <param name="observation">observation interface</param>
+/// <param name="position">target position</param>
 void GoingMerry::AttackWithUnit(const Unit* unit, const ObservationInterface* observation, Point2D position) {
 
 
@@ -2892,6 +2886,9 @@ void GoingMerry::AttackWithUnit(const Unit* unit, const ObservationInterface* ob
     return;
 }
 
+/// <summary>
+/// manage army
+/// </summary>
 void GoingMerry::ManageArmy()
 {
     const ObservationInterface* observation = Observation();
@@ -3004,6 +3001,7 @@ void GoingMerry::ManageArmy()
                 continue;
             }
 
+            // If army composition meets requirement, launch attack
             if ((army.size() > (20 + num_harassers + num_scouts)) && (unit->shield > (unit->shield_max - 10)))
             {
                 if (enemy_bases.size() > 0 && !launchedHarass) // only send harass if an enemy base is found
@@ -3111,9 +3109,13 @@ void GoingMerry::ManageArmy()
     }
 }
 
+/// <summary>
+/// defend with units
+/// </summary>
+/// <param name="unit">unit list</param>
+/// <param name="observation">observation interface</param>
 void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* observation)
 {
-
     // Safety check: assert unit is not scout or harasser
     if (std::find(scouts.begin(), scouts.end(), unit) != scouts.end()) {
         return;
@@ -3135,7 +3137,6 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
         {
             float d = Distance2D(enemy->pos, base->pos);
             if (d < 10) {
-                //cout << "Defending base at (" << base->pos.x << "," << base->pos.y << ")" << endl;
                 enemiesNearby = true;
                 AttackWithUnit(unit, observation, enemy->pos);
             }
@@ -3156,6 +3157,14 @@ void GoingMerry::DefendWithUnit(const Unit* unit, const ObservationInterface* ob
     }
 }
 
+/// <summary>
+/// build adaptive units 
+/// </summary>
+/// <param name="reference_unit">reference unit type id</param>
+/// <param name="ability_type">ablitiy id</param>
+/// <param name="production_structure_type">production structure type id</param>
+/// <param name="warp"></param>
+/// <returns></returns>
 bool GoingMerry::BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID ability_type, UNIT_TYPEID production_structure_type, bool warp)
 {
     // TODO: Based on reference_unit and enemy army composition, issue build order
@@ -3396,14 +3405,23 @@ bool GoingMerry::BuildAdaptiveUnit(const UNIT_TYPEID reference_unit, ABILITY_ID 
 
 #pragma region  Map Analysis
 
+/// <summary>
+/// generate grids
+/// </summary>
+/// <param name="centre">centre point</param>
+/// <param name="range">range</param>
+/// <returns></returns>
 vector<Point2D> GoingMerry::CalculateGrid(Point2D centre, int range)
 {
     vector<Point2D> res;
+
+    //calculate the ramge
     float minX = centre.x - range < 0 ? 0 : centre.x - range;
     float minY = centre.y - range < 0 ? 0 : centre.y - range;
     float maxX = centre.x + range > game_info.width ? game_info.width : centre.x + range;
     float maxY = centre.y + range > game_info.height ? game_info.height : centre.y + range;
 
+    //calculate every grid
     for (double i = minX; i <= maxX; i++)
     {
         for (double j = minY; j <= maxY; j++)
@@ -3411,15 +3429,21 @@ vector<Point2D> GoingMerry::CalculateGrid(Point2D centre, int range)
             res.push_back(Point2D(i, j));
         }
     }
-
     return res;
 }
 
+/// <summary>
+/// find ramp
+/// </summary>
+/// <param name="centre">centre point</param>
+/// <param name="range">range</param>
+/// <returns></returns>
 vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
 {
     vector<Point2D> grid = CalculateGrid(Point2D(centre.x, centre.y), range);
     vector<Point2D> ramp;
-
+    
+    //check grid one by one
     for (const auto point : grid)
     {
         if (!observation->IsPlacable(point) && observation->IsPathable(point))
@@ -3428,11 +3452,13 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
         }
     }
 
+    //if no return
     if (ramp.size() == 0)
     {
         return ramp;
     }
     
+    //use average to remove unexpected points
     double averageX = 0;
     double averageY = 0;
 
@@ -3445,8 +3471,10 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
     averageX /= ramp.size();
     averageY /= ramp.size();
 
+
     for (vector<Point2D>::iterator point = ramp.begin(); point < ramp.end();)
-    {           
+    {
+           
         if (Distance2D(*point, Point2D(averageX, averageY)) > 8)
         {
             point = ramp.erase(point);
@@ -3456,19 +3484,25 @@ vector<Point2D> GoingMerry::FindRamp(Point3D centre, int range)
             point++; 
         }
     }
-
     return ramp;
 }
 
+/// <summary>
+/// find nearest ramp for centre unit
+/// </summary>
+/// <param name="centre">centre unit</param>
+/// <returns></returns>
 Point2D GoingMerry::FindNearestRampPoint(const Unit* centre)
 {
     vector<Point2D> ramp = FindRamp(start_location,20);
 
+    //if no ramps return
     if (ramp.size() == 0)
     {
         return Point2D(-1, -1);
     }
 
+    //find the closeted ramp point to the centre point
     Point2D closet = GetRandomEntry(ramp);
     for (const auto& point : ramp)
     {
@@ -3481,6 +3515,11 @@ Point2D GoingMerry::FindNearestRampPoint(const Unit* centre)
     return closet;
 }
 
+/// <summary>
+/// find all points of ramp top
+/// </summary>
+/// <param name="centre">centre point</param>
+/// <returns></returns>
 vector<Point2D> GoingMerry::CalculatePlacableRamp(const Unit* centre)
 {
     vector<Point2D> wall;
@@ -3502,6 +3541,11 @@ vector<Point2D> GoingMerry::CalculatePlacableRamp(const Unit* centre)
     return wall;
 }
 
+/// <summary>
+/// check if point next to ramp
+/// </summary>
+/// <param name="point">point</param>
+/// <returns></returns>
 bool GoingMerry::IsNextToRamp(const Point2D point)
 {
     for (int i = 0; i < 8; i++)
@@ -3517,6 +3561,11 @@ bool GoingMerry::IsNextToRamp(const Point2D point)
     return false;
 }
 
+/// <summary>
+/// check if point next to cliff
+/// </summary>
+/// <param name="point">point</param>
+/// <returns></returns>
 bool GoingMerry::IsNextToCliff(const Point2D point) {
 
     for (int i = 0; i < 8; i++)
