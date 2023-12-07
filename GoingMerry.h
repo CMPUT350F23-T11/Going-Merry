@@ -152,14 +152,6 @@ private:
 
 #pragma endregion
 
-#pragma region  worker command
-
-	//void Mine(const Unit* unit, const Unit* nexus);
-	//void CollectVespeneGas(const Unit* unit, const Unit* assimilator);
-	//void WorkerHub(const Unit* unit);
-
-#pragma endregion
-
 #pragma region strategy
 
 	void BuildOrder(float ingame_time, uint32_t current_supply,uint32_t current_minerals, uint32_t current_gas);

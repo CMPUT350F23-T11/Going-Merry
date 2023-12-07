@@ -240,173 +240,6 @@ void GoingMerry::printLog(string message, bool step)
 #pragma endregion
 
 
-#pragma region Worker Commands
-
-bool GoingMerry::TryBuildProbe()
-{
-    const ObservationInterface* observation = Observation();
-    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-
-    if (observation->GetFoodWorkers() >= ideal_worker_count)
-    {
-        return false;
-    }
-
-    if (observation->GetFoodUsed() >= observation->GetFoodCap())
-    {
-        return false;
-    }
-
-    for (const auto& base : bases)
-    {
-        if (base->assigned_harvesters < base->ideal_harvesters && base->build_progress == 1)
-        {
-            if (observation->GetMinerals() >= 50)
-            {
-                return TryBuildUnit(ABILITY_ID::TRAIN_PROBE, UNIT_TYPEID::PROTOSS_NEXUS);
-            }
-        }
-    }
-
-    return false;
-}
-
-//An estimate of how many workers we should have based on what buildings we have
-int GoingMerry::GetExpectedWorkers(UNIT_TYPEID vespene_building_type) {
-    const ObservationInterface* observation = Observation();
-    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
-    int expected_workers = 0;
-    for (const auto& base : bases) {
-        if (base->build_progress != 1) {
-            continue;
-        }
-        expected_workers += base->ideal_harvesters;
-    }
-
-    for (const auto& geyser : geysers) {
-        if (geyser->vespene_contents > 0) {
-            if (geyser->build_progress != 1) {
-                continue;
-            }
-            expected_workers += geyser->ideal_harvesters;
-        }
-    }
-
-    return expected_workers;
-}
-
-// Mine the nearest mineral to Town hall.
-// If we don't do this, probes may mine from other patches if they stray too far from the base after building.
-void GoingMerry::MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type) {
-    const ObservationInterface* observation = Observation();
-    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
-
-    const Unit* valid_mineral_patch = nullptr;
-
-    if (bases.empty()) {
-        return;
-    }
-
-    for (const auto& geyser : geysers) {
-        if (geyser->assigned_harvesters < geyser->ideal_harvesters) {
-            Actions()->UnitCommand(worker, worker_gather_command, geyser);
-            return;
-        }
-    }
-
-    //Search for a base that is missing workers.
-    for (const auto& base : bases) {
-        //If we have already mined out here skip the base.
-        if (base->ideal_harvesters == 0 || base->build_progress != 1) {
-            continue;
-        }
-        if (base->assigned_harvesters < base->ideal_harvesters) {
-            valid_mineral_patch = FindNearestMineralPatch(base->pos);
-            Actions()->UnitCommand(worker, worker_gather_command, valid_mineral_patch);
-            return;
-        }
-    }
-
-    if (!worker->orders.empty()) {
-        return;
-    }
-
-    //If all workers spots are filled just go to any base.
-    const Unit* random_base = GetRandomEntry(bases);
-    valid_mineral_patch = FindNearestMineralPatch(random_base->pos);
-    Actions()->UnitCommand(worker, worker_gather_command, valid_mineral_patch);
-}
-
-// To ensure that we do not over or under saturate any base.
-void GoingMerry::ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type) {
-    const ObservationInterface* observation = Observation();
-    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
-    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
-
-    if (bases.empty()) {
-        return;
-    }
-
-    for (const auto& base : bases) {
-        //If we have already mined out or still building here skip the base.
-        if (base->ideal_harvesters == 0 || base->build_progress != 1) {
-            continue;
-        }
-        //if base is
-        if (base->assigned_harvesters > base->ideal_harvesters) {
-            Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(worker_type));
-
-            for (const auto& worker : workers) {
-                if (!worker->orders.empty()) {
-                    if (worker->orders.front().target_unit_tag == base->tag) {
-                        //This should allow them to be picked up by mineidleworkers()
-                        MineIdleWorkers(worker, worker_gather_command,vespene_building_type);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(worker_type));
-    for (const auto& geyser : geysers) {
-        if (geyser->ideal_harvesters == 0 || geyser->build_progress != 1) {
-            continue;
-        }
-        if (geyser->assigned_harvesters > geyser->ideal_harvesters) {
-            for (const auto& worker : workers) {
-                if (!worker->orders.empty()) {
-                    if (worker->orders.front().target_unit_tag == geyser->tag) {
-                        //This should allow them to be picked up by mineidleworkers()
-                        MineIdleWorkers(worker, worker_gather_command, vespene_building_type);
-                        return;
-                    }
-                }
-            }
-        }
-        else if (geyser->assigned_harvesters < geyser->ideal_harvesters) {
-            for (const auto& worker : workers) {
-                if (!worker->orders.empty()) {
-                    //This should move a worker that isn't mining gas to gas
-                    const Unit* target = observation->GetUnit(worker->orders.front().target_unit_tag);
-                    if (target == nullptr) {
-                        continue;
-                    }
-                    if (target->unit_type != vespene_building_type) {
-                        //This should allow them to be picked up by mineidleworkers()
-                        MineIdleWorkers(worker, worker_gather_command, vespene_building_type);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-}
-
-#pragma endregion
-
-
 #pragma region TryBuildStructure Variants
 
 bool GoingMerry::TryBuildStructure(ABILITY_ID ability_type_for_structure, UNIT_TYPEID unit_type = UNIT_TYPEID::PROTOSS_PROBE) {
@@ -750,6 +583,169 @@ bool GoingMerry::TryBuildStructureNearPylon(AbilityID ability_type_for_structure
 
 
 #pragma region Assistant Functions
+
+bool GoingMerry::TryBuildProbe()
+{
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+
+    if (observation->GetFoodWorkers() >= ideal_worker_count)
+    {
+        return false;
+    }
+
+    if (observation->GetFoodUsed() >= observation->GetFoodCap())
+    {
+        return false;
+    }
+
+    for (const auto& base : bases)
+    {
+        if (base->assigned_harvesters < base->ideal_harvesters && base->build_progress == 1)
+        {
+            if (observation->GetMinerals() >= 50)
+            {
+                return TryBuildUnit(ABILITY_ID::TRAIN_PROBE, UNIT_TYPEID::PROTOSS_NEXUS);
+            }
+        }
+    }
+
+    return false;
+}
+
+//An estimate of how many workers we should have based on what buildings we have
+int GoingMerry::GetExpectedWorkers(UNIT_TYPEID vespene_building_type) {
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
+    int expected_workers = 0;
+    for (const auto& base : bases) {
+        if (base->build_progress != 1) {
+            continue;
+        }
+        expected_workers += base->ideal_harvesters;
+    }
+
+    for (const auto& geyser : geysers) {
+        if (geyser->vespene_contents > 0) {
+            if (geyser->build_progress != 1) {
+                continue;
+            }
+            expected_workers += geyser->ideal_harvesters;
+        }
+    }
+
+    return expected_workers;
+}
+
+// Mine the nearest mineral to Town hall.
+// If we don't do this, probes may mine from other patches if they stray too far from the base after building.
+void GoingMerry::MineIdleWorkers(const Unit* worker, AbilityID worker_gather_command, UnitTypeID vespene_building_type) {
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
+
+    const Unit* valid_mineral_patch = nullptr;
+
+    if (bases.empty()) {
+        return;
+    }
+
+    for (const auto& geyser : geysers) {
+        if (geyser->assigned_harvesters < geyser->ideal_harvesters) {
+            Actions()->UnitCommand(worker, worker_gather_command, geyser);
+            return;
+        }
+    }
+
+    //Search for a base that is missing workers.
+    for (const auto& base : bases) {
+        //If we have already mined out here skip the base.
+        if (base->ideal_harvesters == 0 || base->build_progress != 1) {
+            continue;
+        }
+        if (base->assigned_harvesters < base->ideal_harvesters) {
+            valid_mineral_patch = FindNearestMineralPatch(base->pos);
+            Actions()->UnitCommand(worker, worker_gather_command, valid_mineral_patch);
+            return;
+        }
+    }
+
+    if (!worker->orders.empty()) {
+        return;
+    }
+
+    //If all workers spots are filled just go to any base.
+    const Unit* random_base = GetRandomEntry(bases);
+    valid_mineral_patch = FindNearestMineralPatch(random_base->pos);
+    Actions()->UnitCommand(worker, worker_gather_command, valid_mineral_patch);
+}
+
+// To ensure that we do not over or under saturate any base.
+void GoingMerry::ManageWorkers(UNIT_TYPEID worker_type, AbilityID worker_gather_command, UNIT_TYPEID vespene_building_type) {
+    const ObservationInterface* observation = Observation();
+    Units bases = observation->GetUnits(Unit::Alliance::Self, IsTownHall());
+    Units geysers = observation->GetUnits(Unit::Alliance::Self, IsUnit(vespene_building_type));
+
+    if (bases.empty()) {
+        return;
+    }
+
+    for (const auto& base : bases) {
+        //If we have already mined out or still building here skip the base.
+        if (base->ideal_harvesters == 0 || base->build_progress != 1) {
+            continue;
+        }
+        //if base is
+        if (base->assigned_harvesters > base->ideal_harvesters) {
+            Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(worker_type));
+
+            for (const auto& worker : workers) {
+                if (!worker->orders.empty()) {
+                    if (worker->orders.front().target_unit_tag == base->tag) {
+                        //This should allow them to be picked up by mineidleworkers()
+                        MineIdleWorkers(worker, worker_gather_command,vespene_building_type);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    Units workers = observation->GetUnits(Unit::Alliance::Self, IsUnit(worker_type));
+    for (const auto& geyser : geysers) {
+        if (geyser->ideal_harvesters == 0 || geyser->build_progress != 1) {
+            continue;
+        }
+        if (geyser->assigned_harvesters > geyser->ideal_harvesters) {
+            for (const auto& worker : workers) {
+                if (!worker->orders.empty()) {
+                    if (worker->orders.front().target_unit_tag == geyser->tag) {
+                        //This should allow them to be picked up by mineidleworkers()
+                        MineIdleWorkers(worker, worker_gather_command, vespene_building_type);
+                        return;
+                    }
+                }
+            }
+        }
+        else if (geyser->assigned_harvesters < geyser->ideal_harvesters) {
+            for (const auto& worker : workers) {
+                if (!worker->orders.empty()) {
+                    //This should move a worker that isn't mining gas to gas
+                    const Unit* target = observation->GetUnit(worker->orders.front().target_unit_tag);
+                    if (target == nullptr) {
+                        continue;
+                    }
+                    if (target->unit_type != vespene_building_type) {
+                        //This should allow them to be picked up by mineidleworkers()
+                        MineIdleWorkers(worker, worker_gather_command, vespene_building_type);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 size_t GoingMerry::CountUnitType(UNIT_TYPEID unit_type) {
     return Observation()->GetUnits(Unit::Alliance::Self, IsUnit(unit_type)).size();
